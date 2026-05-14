@@ -1,0 +1,6 @@
+{
+  "name": "CIHE",
+  "description": "Integrated internal/student portal for Crown Institute of Higher Education featuring role-based dashboards, attendance management, and AI Assistant support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
