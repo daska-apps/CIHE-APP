@@ -1,0 +1,326 @@
+export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri';
+
+/** 
+ * CIHE Timetable Core Data
+ * Designed and Maintained by Anthony Daskalakis
+ * Copyright 2026 CIHE
+ */
+export type SlotId = 'm' | 'n' | 'a' | 'e';
+
+export interface ClassSession {
+  unitCode: string;
+  day: Day;
+  slot: SlotId;
+  room: string;
+}
+
+export interface StudentTimetable {
+  id: string;
+  sessions: ClassSession[];
+}
+
+export interface UnitInfo {
+  code: string;
+  title: string;
+  tutor: string;
+  moodleUrl?: string;
+  guideUrl?: string;
+}
+
+export const UNIT_TITLES: Record<string, UnitInfo> = {
+  ICT932: { 
+    code: 'ICT932', 
+    title: 'IT Infrastructure & Networking', 
+    tutor: 'Mutaz',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=932',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT932'
+  },
+  ICT940: { 
+    code: 'ICT940', 
+    title: 'Data Analytics & Visualization', 
+    tutor: 'Madhumita',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=940',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT940'
+  },
+  ICT946: { 
+    code: 'ICT946', 
+    title: 'Capstone Project', 
+    tutor: 'John Ayoade',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=946'
+  },
+  ICT930: { 
+    code: 'ICT930', 
+    title: 'Database Systems', 
+    tutor: 'Javad',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=930'
+  },
+  ICT942: { 
+    code: 'ICT942', 
+    title: 'Cloud Computing', 
+    tutor: 'Nazila',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=942'
+  },
+  ICT945: { 
+    code: 'ICT945', 
+    title: 'Cyber Security Operations', 
+    tutor: 'Barak',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT945'
+  },
+  ICT934: { 
+    code: 'ICT934', 
+    title: 'Web Development', 
+    tutor: 'Qurat',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=934'
+  },
+  ICT931: { 
+    code: 'ICT931', 
+    title: 'Systems Analysis', 
+    tutor: 'Madhumita',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT931'
+  },
+  ICT304: { 
+    code: 'ICT304', 
+    title: 'Web Application Frameworks', 
+    tutor: 'Qurat',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=304',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT304'
+  },
+  ICT309: { 
+    code: 'ICT309', 
+    title: 'IT Governance', 
+    tutor: 'Barak',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT309'
+  },
+  ICT306: { 
+    code: 'ICT306', 
+    title: 'Distributed Systems', 
+    tutor: 'Dr. Barjinder Singh',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=306'
+  },
+  ICT104: { 
+    code: 'ICT104', 
+    title: 'Programming Fundamentals', 
+    tutor: 'Qurat',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=104',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT104'
+  },
+  ICT203: { 
+    code: 'ICT203', 
+    title: 'User Experience Design', 
+    tutor: 'Nazila',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=203',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT203'
+  },
+  ICT208: { 
+    code: 'ICT208', 
+    title: 'Algorithms & Data Structures', 
+    tutor: 'Qurat',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=208',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT208'
+  },
+  ICT301: { 
+    code: 'ICT301', 
+    title: 'IT Project Management', 
+    tutor: 'Madhumita',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=301',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT301'
+  },
+  ICT206: { 
+    code: 'ICT206', 
+    title: 'Introduction to AI', 
+    tutor: 'Dr. Ancy',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=206'
+  },
+  ICT308: { 
+    code: 'ICT308', 
+    title: 'Testing & Quality Assurance', 
+    tutor: 'Javad',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=308'
+  },
+  ICT305: { 
+    code: 'ICT305', 
+    title: 'Internet of Things', 
+    tutor: 'Dr. Farrukh',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=305',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT305'
+  },
+  ICT204: { 
+    code: 'ICT204', 
+    title: 'Communication Networks', 
+    tutor: 'Dr. Shadi',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=204'
+  },
+  ICT202: { 
+    code: 'ICT202', 
+    title: 'Operating Systems', 
+    tutor: 'John',
+    guideUrl: 'https://cihe.edu.au/unit-guides/ICT202'
+  },
+  ICT101: { 
+    code: 'ICT101', 
+    title: 'Discrete Mathematics', 
+    tutor: 'Madhumita',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=101'
+  },
+  ICT102: { code: 'ICT102', title: 'Computer Systems', tutor: 'Mutaz' },
+  ICT201: { code: 'ICT201', title: 'Database Design', tutor: 'Javad' },
+  BUS201: { 
+    code: 'BUS201', 
+    title: 'Business Law', 
+    tutor: 'Prof. Richard',
+    guideUrl: 'https://cihe.edu.au/unit-guides/BUS201'
+  },
+  BUS206: { 
+    code: 'BUS206', 
+    title: 'Management Principles', 
+    tutor: 'Dr. Amina',
+    moodleUrl: 'https://moodle.cihe.edu.au/course/view.php?id=206',
+    guideUrl: 'https://cihe.edu.au/unit-guides/BUS206'
+  },
+  CS104: { code: 'CS104', title: 'Computer Graphics', tutor: 'Dr. Sarah' },
+  CS205: { code: 'CS205', title: 'Placement 1', tutor: 'Hallam Wye' },
+  CS304: { code: 'CS304', title: 'Machine Learning', tutor: 'Dr. David' },
+  CS301: { code: 'CS301', title: 'Artificial Intelligence', tutor: 'Dr. Michael' },
+  CS107: { code: 'CS107', title: 'Introduction to CS', tutor: 'Staff' },
+  CS206: { code: 'CS206', title: 'Human Computer Interaction', tutor: 'Staff' },
+  CS202: { code: 'CS202', title: 'Logic & Computation', tutor: 'Staff' },
+  CS201: { code: 'CS201', title: 'Data Structures', tutor: 'Staff' },
+  CS203: { code: 'CS203', title: 'Systems Programming', tutor: 'Staff' },
+  CS306: { code: 'CS306', title: 'Advanced Networking', tutor: 'Staff' },
+  CS305: { code: 'CS305', title: 'Cloud Systems', tutor: 'Staff' },
+  EC100: { code: 'EC100', title: 'Economic Analysis', tutor: 'Staff' },
+  EC101: { code: 'EC101', title: 'Microeconomics', tutor: 'Staff' },
+  EC102: { code: 'EC102', title: 'Macroeconomics', tutor: 'Staff' },
+  EC103: { code: 'EC103', title: 'Economic Principles', tutor: 'Staff' },
+  EC104: { code: 'EC104', title: 'Business Statistics', tutor: 'Staff' },
+  EC105: { code: 'EC105', title: 'Corporate Finance', tutor: 'Staff' },
+  EC106: { code: 'EC106', title: 'Managerial Accounting', tutor: 'Staff' },
+  EC503: { code: 'EC503', title: 'Advanced Macroeconomics', tutor: 'Staff' },
+  EC504: { code: 'EC504', title: 'Research Econometrics', tutor: 'Staff' },
+  EC505: { code: 'EC505', title: 'International Trade', tutor: 'Staff' },
+  ECP502: { code: 'ECP502', title: 'Economics Capstone', tutor: 'Staff' },
+  ACC101: { code: 'ACC101', title: 'Financial Accounting', tutor: 'Dr. Amina' },
+  ACC102: { code: 'ACC102', title: 'Management Accounting', tutor: 'Dr. Ancy' },
+  ACC951: { code: 'ACC951', title: 'Auditing & Assurance', tutor: 'Dr. Barjinder Singh' },
+  ICT950: { code: 'ICT950', title: 'IT Strategy & Planning', tutor: 'Dr. Farrukh' },
+  RES904: { code: 'RES904', title: 'Thesis Seminar', tutor: 'Dr. Shadi' },
+  BUS101: { code: 'BUS101', title: 'Business Foundations', tutor: 'Prof. Richard' },
+  BUS102: { code: 'BUS102', title: 'Organizational Behavior', tutor: 'Dr. Amina' },
+  BUS108: { code: 'BUS108', title: 'Marketing Foundations', tutor: 'Dr. Sarah' },
+  BUS112: { code: 'BUS112', title: 'Human Resource Management', tutor: 'Dr. Michael' },
+  BUS114: { code: 'BUS114', title: 'Entrepreneurship', tutor: 'Dr. David' },
+  BUS202: { code: 'BUS202', title: 'Digital Marketing', tutor: 'Dr. Ancy' },
+  BUS301: { code: 'BUS301', title: 'Strategic Management', tutor: 'Dr. Barjinder Singh' },
+  HOST305: { code: 'HOST305', title: 'Hospitality Management', tutor: 'Staff' },
+  ECP001: { code: 'ECP001', title: 'Economics Placement', tutor: 'Staff' },
+  RES901: { code: 'RES901', title: 'Research Methodology', tutor: 'Dr. Shadi' },
+  RES902: { code: 'RES902', title: 'Literature Review', tutor: 'Dr. Farrukh' },
+  RES903: { code: 'RES903', title: 'Research proposal', tutor: 'Dr. Ancy' },
+  CS207: { code: 'CS207', title: 'Network Infrastructure', tutor: 'Mutaz' },
+};
+
+export const parseSlot = (slotStr: string): ClassSession => {
+  const match = slotStr.match(/^(.+?)\((.+?)-(.+?)-(.+?)\)$/);
+  if (!match) throw new Error(`Invalid slot format: ${slotStr}`);
+  return {
+    unitCode: match[1],
+    day: match[2] as Day,
+    slot: match[3] as SlotId,
+    room: match[4],
+  };
+};
+
+export const TIMETABLE_A: StudentTimetable[] = [
+  { id: 'CIHE21351', sessions: [parseSlot('ICT932(Tue-a-M505)'), parseSlot('ICT940(Wed-m-M507)'), parseSlot('ICT946(Tue-n-M506)')] },
+  { id: 'CIHE21366', sessions: [parseSlot('ICT946(Tue-n-M506)')] },
+  { id: 'CIHE21544', sessions: [parseSlot('EC101(Fri-n-M507)'), parseSlot('EC102(Fri-a-M507)'), parseSlot('EC100(Mon-e-M507)'), parseSlot('EC103(Fri-m-M505)')] },
+  { id: 'CIHE21603', sessions: [parseSlot('ICT930(Wed-e-M502)'), parseSlot('ICT942(Wed-n-M503)'), parseSlot('ICT945(Tue-m-M501)'), parseSlot('ICT934(Tue-n-M501)')] },
+  { id: 'CIHE22079', sessions: [parseSlot('ICT931(Tue-a-M501)'), parseSlot('ICT921(Tue-m-M507)'), parseSlot('ICT922(Thu-m-M507)'), parseSlot('ICT923(Tue-n-M504)')] },
+  { id: 'CIHE22122', sessions: [parseSlot('ICT945(Tue-m-M501)'), parseSlot('ICT932(Tue-a-M505)'), parseSlot('ICT940(Wed-m-M507)'), parseSlot('ICT946(Tue-n-M506)')] },
+  { id: 'CIHE22479', sessions: [parseSlot('ICT307(Mon-n-M502)'), parseSlot('ICT205(Mon-a-M504)'), parseSlot('ICT313(Wed-e-M503)'), parseSlot('BUS206(Wed-n-M504)')] },
+  { id: 'CIHE22532', sessions: [parseSlot('BUS201(Wed-a-M507)'), parseSlot('BUS206(Fri-n-M505)')] },
+  { id: 'CIHE23022', sessions: [parseSlot('BUS201(Wed-a-M507)')] },
+  { id: 'CIHE23043', sessions: [parseSlot('ICT930(Wed-e-M502)'), parseSlot('ICT931(Wed-a-M504)'), parseSlot('ICT942(Wed-n-M503)'), parseSlot('ICT920(Tue-a-M502)')] },
+  { id: 'CIHE23094', sessions: [parseSlot('ICT930(Wed-e-M502)'), parseSlot('ICT942(Wed-n-M503)'), parseSlot('ICT945(Tue-m-M501)'), parseSlot('ICT934(Tue-n-M501)')] },
+  { id: 'CIHE231043', sessions: [parseSlot('BUS201(Fri-a-M503)'), parseSlot('ICT304(Wed-a-M505)'), parseSlot('BUS206(Fri-n-M505)')] },
+  { id: 'CIHE231174', sessions: [parseSlot('BUS201(Wed-a-M507)'), parseSlot('ICT309(Thu-n-M504)'), parseSlot('ICT306(Thu-m-M502)'), parseSlot('BUS206(Thu-a-M505)')] },
+  { id: 'CIHE231191', sessions: [parseSlot('BUS201(Wed-e-M501)'), parseSlot('ICT304(Wed-a-M505)')] },
+  { id: 'CIHE231230', sessions: [parseSlot('BUS201(Fri-a-M503)')] },
+  { id: 'CIHE231235', sessions: [parseSlot('ICT930(Wed-e-M502)'), parseSlot('ICT942(Wed-n-M503)'), parseSlot('ICT945(Tue-m-M501)'), parseSlot('ICT920(Tue-a-M502)')] },
+  { id: 'CIHE231245', sessions: [parseSlot('BUS201(Wed-a-M507)')] },
+  { id: 'CIHE231261', sessions: [parseSlot('BUS201(Fri-a-M503)'), parseSlot('ICT304(Wed-a-M505)')] },
+  { id: 'CIHE23136', sessions: [parseSlot('ICT930(Wed-e-M502)'), parseSlot('ICT931(Wed-a-M504)'), parseSlot('ICT942(Wed-n-M503)'), parseSlot('ICT934(Tue-n-M501)')] },
+  { id: 'CIHE231368', sessions: [parseSlot('ICT306(Thu-m-P102)'), parseSlot('BUS206(Tue-a-M507)')] },
+  { id: 'CIHE231425', sessions: [parseSlot('BUS201(Fri-a-C203)'), parseSlot('ICT304(Wed-a-M505)')] },
+  { id: 'CIHE231429', sessions: [parseSlot('ICT104(Wed-m-P301)'), parseSlot('ICT203(Thu-e-C105)'), parseSlot('ICT313(Thu-a-M504)'), parseSlot('BUS206(Wed-n-P504)')] },
+  { id: 'CIHE231486', sessions: [parseSlot('ICT945(Tue-m-M501)'), parseSlot('ICT932(Tue-a-M505)'), parseSlot('ICT940(Wed-m-M507)'), parseSlot('ICT946(Tue-n-M506)')] },
+  { id: 'CIHE231525', sessions: [parseSlot('ICT307(Mon-n-M502)'), parseSlot('ICT309(Thu-n-M504)'), parseSlot('ICT205(Mon-a-M504)'), parseSlot('BUS206(Thu-a-M505)')] },
+  { id: 'CIHE231559', sessions: [parseSlot('ICT208(Thu-m-M504)'), parseSlot('ICT301(Thu-n-M503)'), parseSlot('ICT313(Wed-e-M503)'), parseSlot('BUS206(Thu-a-M505)')] },
+  { id: 'CIHE231577', sessions: [parseSlot('ICT104(Wed-m-M503)'), parseSlot('ICT203(Thu-e-M505)'), parseSlot('ICT206(Wed-n-M505)'), parseSlot('BUS206(Wed-a-M502)')] },
+  { id: 'CIHE231595', sessions: [parseSlot('ICT104(Wed-m-M503)'), parseSlot('ICT203(Thu-e-M505)'), parseSlot('ICT206(Wed-n-M505)'), parseSlot('BUS206(Wed-a-M502)')] },
+  { id: 'CIHE231605', sessions: [parseSlot('BUS201(Fri-a-M503)'), parseSlot('ICT308(Wed-m-M504)'), parseSlot('ICT304(Wed-a-M505)'), parseSlot('BUS206(Fri-n-M505)')] },
+  { id: 'CIHE231619', sessions: [parseSlot('ICT208(Tue-n-M507)'), parseSlot('ICT306(Thu-m-M502)'), parseSlot('ICT313(Thu-a-M504)'), parseSlot('BUS206(Tue-a-M507)')] },
+  { id: 'CIHE231641', sessions: [parseSlot('ICT301(Thu-n-M503)'), parseSlot('ICT305(Wed-a-M503)'), parseSlot('ICT313(Wed-e-M503)'), parseSlot('BUS206(Thu-a-M505)')] },
+  { id: 'CIHE231650', sessions: [parseSlot('ICT208(Mon-n-M507)'), parseSlot('ICT204(Mon-e-M502)'), parseSlot('ICT205(Mon-a-M504)'), parseSlot('BUS206(Tue-a-M507)')] },
+  { id: 'CIHE231662', sessions: [parseSlot('ICT930(Thu-a-M502)'), parseSlot('ICT931(Wed-a-M504)'), parseSlot('ICT922(Thu-m-M507)'), parseSlot('ICT934(Thu-n-M505)')] },
+  { id: 'CIHE231693', sessions: [parseSlot('ICT930(Wed-e-M502)'), parseSlot('ICT931(Wed-a-M504)'), parseSlot('ICT920(Tue-a-M502)'), parseSlot('ICT942(Wed-n-M503)')] },
+  { id: 'CIHE231698', sessions: [parseSlot('ICT945(Tue-m-M501)'), parseSlot('ICT932(Tue-a-M505)'), parseSlot('ICT940(Wed-m-M507)'), parseSlot('ICT946(Tue-n-M506)')] },
+  { id: 'CIHE240103', sessions: [parseSlot('ICT309(Thu-n-M504)'), parseSlot('ICT305(Wed-a-M503)'), parseSlot('ICT313(Wed-e-M503)'), parseSlot('BUS206(Thu-m-M503)')] },
+  { id: 'CIHE240149', sessions: [parseSlot('ICT205(Mon-a-M504)'), parseSlot('BUS206(Fri-n-M505)')] },
+  { id: 'CIHE240163', sessions: [parseSlot('ICT208(Thu-m-M504)'), parseSlot('ICT203(Fri-a-M505)'), parseSlot('ICT301(Thu-n-M503)'), parseSlot('BUS206(Fri-n-M505)')] },
+  { id: 'CIHE240179', sessions: [parseSlot('ICT307(Mon-n-M502)'), parseSlot('ICT309(Thu-n-M504)'), parseSlot('ICT205(Mon-a-M504)'), parseSlot('BUS206(Thu-a-M505)')] },
+  { id: 'CIHE24021', sessions: [parseSlot('ICT208(Thu-m-M504)'), parseSlot('ICT305(Wed-a-M503)'), parseSlot('ICT313(Wed-e-M503)'), parseSlot('BUS206(Wed-n-M504)')] },
+  { id: 'CIHE240222', sessions: [parseSlot('RES902(Mon-a-M505)'), parseSlot('RES903(Thu-n-M506)'), parseSlot('RES901(Mon-n-M506)'), parseSlot('ICT950(Mon-m-M502)')] },
+  { id: 'CIHE240237', sessions: [parseSlot('ICT208(Thu-m-M504)'), parseSlot('ICT203(Fri-a-M505)'), parseSlot('ICT301(Thu-n-M503)'), parseSlot('BUS206(Fri-n-M505)')] },
+  { id: 'CIHE240256', sessions: [parseSlot('BUS201(Fri-a-M503)'), parseSlot('ICT308(Wed-m-M504)'), parseSlot('ICT304(Wed-a-M505)'), parseSlot('BUS206(Wed-n-M504)')] },
+  { id: 'CIHE240293', sessions: [parseSlot('BUS201(Fri-a-M503)'), parseSlot('ICT308(Wed-m-M504)'), parseSlot('ICT304(Wed-a-M505)'), parseSlot('BUS206(Wed-n-M504)')] },
+  { id: 'CIHE240307', sessions: [parseSlot('BUS201(Wed-e-M501)'), parseSlot('ICT304(Wed-a-M505)'), parseSlot('BUS206(Wed-n-M504)')] },
+  { id: 'CIHE240327', sessions: [parseSlot('ICT208(Mon-n-M507)'), parseSlot('ICT307(Wed-m-M502)'), parseSlot('ICT205(Mon-a-M504)'), parseSlot('BUS206(Wed-a-M502)')] },
+  { id: 'CIHE241026', sessions: [parseSlot('CS203(Thu-a-M501)'), parseSlot('CS206(Fri-e-M501)'), parseSlot('CS207(Thu-m-M506)'), parseSlot('CS304(Thu-n-M507)')] },
+  { id: 'CIHE241047', sessions: [parseSlot('CS203(Thu-a-M501)'), parseSlot('CS201(Tue-a-M506)'), parseSlot('CS206(Thu-n-M501)'), parseSlot('CS304(Tue-n-M502)')] },
+  { id: 'CIHE250812', sessions: [parseSlot('ICT208(Tue-n-M507)'), parseSlot('ICT203(Tue-e-M503)'), parseSlot('ICT313(Wed-e-M503)'), parseSlot('BUS206(Tue-a-M507)')] },
+  { id: 'CIHE250815', sessions: [parseSlot('EC106(Tue-m-M504)'), parseSlot('ECP001(Fri-m-M503)'), parseSlot('EC104(Tue-a-M504)'), parseSlot('EC105(Tue-n-M503)')] },
+  { id: 'CIHE250850', sessions: [parseSlot('ACC101(Fri-n-M503)'), parseSlot('BUS202(Fri-e-M507)'), parseSlot('BUS114(Fri-a-M502)'), parseSlot('HOST305(Thu-e-M502)')] },
+  { id: 'CIHE251311', sessions: [parseSlot('EC503(Mon-e-M505)'), parseSlot('EC504(Thu-a-M503)'), parseSlot('EC505(Mon-n-M503)'), parseSlot('ECP502(Mon-a-M507)')] },
+  { id: 'CIHE260892', sessions: [parseSlot('ACC951(Fri-n-M502)'), parseSlot('ICT950(Mon-m-M502)'), parseSlot('RES904(Fri-m-M502)')] },
+];
+
+export const TIMETABLE_B: StudentTimetable[] = [
+  { id: 'CIHE21351', sessions: [parseSlot('ICT932(Tue-e-M507)'), parseSlot('ICT940(Wed-a-M507)'), parseSlot('ICT946(Tue-n-M503)')] },
+  { id: 'CIHE21366', sessions: [parseSlot('ICT946(Tue-n-M503)')] },
+  { id: 'CIHE21544', sessions: [parseSlot('EC101(Fri-a-M507)'), parseSlot('EC102(Wed-m-M507)'), parseSlot('EC100(Wed-a-M504)'), parseSlot('EC103(Wed-n-M505)')] },
+  { id: 'CIHE21603', sessions: [parseSlot('ICT930(Fri-a-M506)'), parseSlot('ICT942(Wed-n-M507)'), parseSlot('ICT945(Wed-e-M507)'), parseSlot('ICT934(Fri-m-M503)')] },
+  { id: 'CIHE22079', sessions: [parseSlot('ICT931(Fri-n-M504)'), parseSlot('ICT921(Fri-a-M502)'), parseSlot('ICT922(Fri-e-M505)'), parseSlot('ICT923(Wed-e-M503)')] },
+  { id: 'CIHE22122', sessions: [parseSlot('ICT945(Wed-e-M507)'), parseSlot('ICT932(Tue-e-M507)'), parseSlot('ICT940(Wed-a-M507)'), parseSlot('ICT946(Tue-n-M503)')] },
+  { id: 'CIHE22479', sessions: [parseSlot('ICT307(Mon-n-M504)'), parseSlot('ICT205(Mon-a-M506)'), parseSlot('ICT313(Tue-a-M507)'), parseSlot('BUS206(Mon-e-M504)')] },
+  { id: 'CIHE23043', sessions: [parseSlot('ICT930(Fri-a-M506)'), parseSlot('ICT931(Fri-n-M504)'), parseSlot('ICT942(Wed-n-M507)'), parseSlot('ICT920(Tue-a-M506)')] },
+  { id: 'CIHE23094', sessions: [parseSlot('ICT930(Fri-a-M506)'), parseSlot('ICT942(Wed-n-M507)'), parseSlot('ICT945(Wed-e-M507)'), parseSlot('ICT934(Fri-m-M503)')] },
+  { id: 'CIHE231174', sessions: [parseSlot('BUS201(Wed-a-M507)'), parseSlot('ICT309(Mon-n-M504)'), parseSlot('ICT306(Mon-m-M504)'), parseSlot('BUS206(Mon-a-M506)')] },
+  { id: 'CIHE23136', sessions: [parseSlot('ICT930(Fri-a-M506)'), parseSlot('ICT931(Fri-n-M504)'), parseSlot('ICT942(Wed-n-M507)'), parseSlot('ICT934(Fri-m-M503)')] },
+  { id: 'CIHE231486', sessions: [parseSlot('ICT945(Wed-e-M507)'), parseSlot('ICT932(Tue-e-M507)'), parseSlot('ICT940(Wed-a-M507)'), parseSlot('ICT946(Tue-n-M503)')] },
+  { id: 'CIHE231693', sessions: [parseSlot('ICT930(Fri-a-M506)'), parseSlot('ICT931(Fri-n-M504)'), parseSlot('ICT920(Tue-m-M503)'), parseSlot('ICT942(Wed-n-M507)')] },
+  { id: 'CIHE231698', sessions: [parseSlot('ICT945(Wed-e-M507)'), parseSlot('ICT932(Tue-e-M507)'), parseSlot('ICT940(Wed-a-M507)'), parseSlot('ICT946(Tue-n-M503)')] },
+  { id: 'CIHE240222', sessions: [parseSlot('RES902(Fri-n-M502)'), parseSlot('RES903(Fri-m-M505)'), parseSlot('RES901(Mon-e-M505)'), parseSlot('ICT950(Mon-n-M503)')] },
+  { id: 'CIHE260892', sessions: [parseSlot('ACC951(Tue-n-M507)'), parseSlot('ICT950(Mon-n-M503)'), parseSlot('RES904(Tue-m-M503)')] },
+];
+
+export const ALL_STUDENTS = [...new Set([...TIMETABLE_A.map(s => s.id), ...TIMETABLE_B.map(s => s.id)])];
+
+export const getMasterSchedule = (version: 'A' | 'B'): ClassSession[] => {
+  const timetable = version === 'A' ? TIMETABLE_A : TIMETABLE_B;
+  const allSessions = timetable.flatMap(s => s.sessions);
+  
+  // Unique sessions based on unit, day, slot, and room
+  const uniqueSessions: ClassSession[] = [];
+  const seen = new Set<string>();
+
+  for (const session of allSessions) {
+    const key = `${session.unitCode}-${session.day}-${session.slot}-${session.room}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueSessions.push(session);
+    }
+  }
+
+  return uniqueSessions;
+};
