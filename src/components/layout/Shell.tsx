@@ -20,6 +20,7 @@ import {
   Shield,
   FileText,
   Users,
+
   Moon,
   Sun,
   Megaphone
@@ -165,6 +166,7 @@ export default function Shell({ children }: ShellProps) {
                 <NavItem to="/roll-call" icon={Users} label="Roll Call" isActive={location.pathname === "/roll-call"} />
               )}
               <NavItem to="/announcements" icon={Megaphone} label="Announcements" isActive={location.pathname === "/announcements"} badge={announcementBadge} />
+              <NavItem to="/forms" icon={FileText} label="Forms & Requests" isActive={location.pathname === "/forms"} />
               <NavItem to="/digital-id" icon={Shield} label="Digital ID" isActive={location.pathname === "/digital-id"} />
               <NavItem to="/support" icon={LifeBuoy} label="Support Hub" isActive={location.pathname === "/support"} />
               <NavItem to="/settings" icon={Settings} label="Settings" isActive={location.pathname === "/settings"} />

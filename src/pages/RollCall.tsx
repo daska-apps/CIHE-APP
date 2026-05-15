@@ -159,7 +159,7 @@ export default function RollCall() {
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-950/50 text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
                 <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800">Student Identity</th>
-                <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800">Enrollment Path</th>
+                <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800">Enrolment Path</th>
                 <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800">Attendance</th>
                 <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800">Engagement</th>
                 <th className="px-8 py-5 border-b border-slate-100 dark:border-slate-800"></th>
@@ -191,7 +191,7 @@ export default function RollCall() {
                             {unit}
                           </span>
                         ))}
-                        {student.units.length === 0 && <span className="text-[10px] font-medium text-slate-300 dark:text-slate-700 italic">No Enrollments</span>}
+                        {student.units.length === 0 && <span className="text-[10px] font-medium text-slate-300 dark:text-slate-700 italic">No Enrolments</span>}
                       </div>
                     </td>
                     <td className="px-8 py-6">

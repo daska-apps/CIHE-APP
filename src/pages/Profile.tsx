@@ -264,7 +264,7 @@ export default function Profile() {
                   </div>
                   <p className="text-[10px] font-bold text-slate-400 shrink-0 text-right">
                     {new Date(event.timestamp).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}<br />
-                    <span className="text-slate-300 dark:text-slate-600">{new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-slate-300 dark:text-slate-600">{new Date(event.timestamp).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                   </p>
                 </motion.div>
               ))}

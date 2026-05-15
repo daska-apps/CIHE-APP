@@ -136,7 +136,8 @@ export default function Support() {
               address: '116 Pacific Highway, North Sydney NSW 2060',
               also: 'Also: Level 5/213 Miller Street, North Sydney',
               amenities: ['Library', 'Student Lounge', 'Computer Labs', 'Study Spaces'],
-              image: 'https://www.cihe.edu.au/wp-content/uploads/2026/02/CRWON-INSTITUTE-206-768x513.jpg',
+              image: '/images/class.jpg',
+              fallback: 'from-indigo-800 to-indigo-600',
             },
             {
               city: 'Sydney CBD',
@@ -144,7 +145,8 @@ export default function Support() {
               address: 'Level 11/307 Pitt Street, Sydney NSW 2000',
               also: 'Also: 2 Woodville Street, Hurstville NSW 2220',
               amenities: ['Teaching Labs', 'Group Rooms', 'CBD Location'],
-              image: '/images/student support.png',
+              image: '/images/this.jpg',
+              fallback: 'from-sky-800 to-sky-600',
             },
             {
               city: 'Canberra (ACT)',
@@ -152,7 +154,8 @@ export default function Support() {
               address: 'Level 1/5 Fussell Lane, Gungahlin ACT 2912',
               also: 'Also: Level 4/40 Cameron Ave, Belconnen | 118 Lysaght St, Mitchell',
               amenities: ['3 ACT Locations', 'Study Spaces', 'Student Services'],
-              image: 'https://www.cihe.edu.au/wp-content/uploads/2026/02/CRWON-INSTITUTE-206-768x513.jpg',
+              image: '/images/class.jpg',
+              fallback: 'from-emerald-800 to-emerald-600',
             },
             {
               city: 'West Perth',
@@ -160,7 +163,8 @@ export default function Support() {
               address: '1325 Hay Street, West Perth WA 6005',
               also: 'Opened Semester 1, 2026 — Early Childhood Education focus',
               amenities: ['New Facilities', 'Early Childhood Specialisation', 'Teaching Labs'],
-              image: '/images/perth.jpg',
+              image: '/images/this.jpg',
+              fallback: 'from-amber-800 to-amber-600',
             },
           ].map((campus, i) => (
             <motion.div
@@ -171,7 +175,8 @@ export default function Support() {
               className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm group hover:border-brand-indigo/30 transition-all"
             >
               <div className="aspect-[4/3] relative overflow-hidden">
-                <img src={campus.image} alt={campus.city} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${campus.fallback}`} />
+                <img src={campus.image} alt={campus.city} className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700" onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0'; }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent" />
                 <div className="absolute bottom-5 left-7 flex items-end justify-between w-full pr-7">
                   <div>

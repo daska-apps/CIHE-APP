@@ -29,10 +29,10 @@ const PERFORMANCE_DATA = [
 ];
 
 const SLOT_TIMES: Record<string, string> = {
-  m: '08:15 - 11:15',
-  n: '11:45 - 14:45',
-  a: '15:15 - 18:15',
-  e: '18:30 - 21:30',
+  m: '8:15 AM – 11:15 AM',
+  n: '11:45 AM – 2:45 PM',
+  a: '3:15 PM – 6:15 PM',
+  e: '6:30 PM – 9:30 PM',
 };
 
 const DAY_CODES: Record<number, Day> = {
@@ -99,7 +99,7 @@ export default function Dashboard() {
       items.push({ id: 'grade-posted', icon: CheckCircle2, label: 'New Grade Posted', meta: 'BIT102 — Software Design Patterns: HD (86)', color: 'emerald', route: '/results', severity: 'info' });
     }
     if (['lecturer', 'staff', 'admin', 'global_admin'].includes(user.role)) {
-      items.push({ id: 'roll-pending', icon: UserCheck, label: 'Roll Call Pending', meta: 'ICT401 — 09:00 session awaits sign-off', color: 'amber', route: '/roll-call', severity: 'warning' });
+      items.push({ id: 'roll-pending', icon: UserCheck, label: 'Roll Call Pending', meta: 'ICT401 — 9:00 AM session awaits sign-off', color: 'amber', route: '/roll-call', severity: 'warning' });
       items.push({ id: 'new-enrolment', icon: CheckCircle2, label: '3 New Enrolments', meta: 'Added to ICT401 this trimester', color: 'indigo', route: '/roll-call', severity: 'info' });
     }
     return items.filter(a => !dismissedActions.includes(a.id));

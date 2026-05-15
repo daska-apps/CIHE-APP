@@ -271,7 +271,7 @@ export default function Attendance() {
             CIHE Registry
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-black text-slate-800 tracking-tighter">Attendance</h1>
-          <p className="text-slate-500 font-medium max-w-md">Institutional session tracking and identity synchronization.</p>
+          <p className="text-slate-500 font-medium max-w-md">Institutional session tracking and identity synchronisation.</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
@@ -427,7 +427,7 @@ export default function Attendance() {
                             {new Date(record.timestamp).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </div>
                           <div className="text-[10px] font-bold text-slate-300 dark:text-slate-600">
-                            {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(record.timestamp).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })}
                           </div>
                         </td>
                       </motion.tr>
@@ -548,7 +548,7 @@ export default function Attendance() {
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                         {isLoading ? (
                             <tr>
-                            <td colSpan={4} className="px-8 py-24 text-center text-slate-300 dark:text-slate-700 font-medium">Synchronizing records...</td>
+                            <td colSpan={4} className="px-8 py-24 text-center text-slate-300 dark:text-slate-700 font-medium">Synchronising records...</td>
                             </tr>
                         ) : filteredRecords?.length === 0 ? (
                             <tr>
@@ -581,7 +581,7 @@ export default function Attendance() {
                                 <td className="px-8 py-5">
                                     <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-medium">
                                         <Clock className="w-3.5 h-3.5" />
-                                        {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {new Date(record.timestamp).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                     </div>
                                 </td>
                             </tr>
@@ -777,7 +777,7 @@ export default function Attendance() {
                                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> {attendee.status}
                                 </span>
                                 <span className="text-[9px] font-bold text-slate-400">
-                                  {new Date(attendee.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(attendee.timestamp).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                 </span>
                               </div>
                             </motion.div>
@@ -866,7 +866,7 @@ export default function Attendance() {
                       {markAttendanceMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <><Check className="w-4 h-4" /> Synchronize Identity</>
+                        <><Check className="w-4 h-4" /> Synchronise Identity</>
                       )}
                     </button>
                   </>

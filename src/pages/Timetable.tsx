@@ -101,10 +101,10 @@ const CAMPUSES: { id: CampusId; name: string }[] = [
 ];
 
 const SLOTS = [
-  { id: 'm', name: 'Morning',   range: '08:15–11:15', icon: Sun,      gradient: 'from-amber-400 to-orange-400',   bg: 'bg-amber-50 dark:bg-amber-950/30',   text: 'text-amber-600 dark:text-amber-400',   ring: 'ring-amber-200 dark:ring-amber-800'  },
-  { id: 'n', name: 'Noon',      range: '11:45–14:45', icon: CloudSun, gradient: 'from-sky-400 to-blue-500',       bg: 'bg-sky-50 dark:bg-sky-950/30',       text: 'text-sky-600 dark:text-sky-400',       ring: 'ring-sky-200 dark:ring-sky-800'      },
-  { id: 'a', name: 'Afternoon', range: '15:15–18:15', icon: SunDim,   gradient: 'from-indigo-500 to-violet-500',  bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800'},
-  { id: 'e', name: 'Evening',   range: '18:30–21:30', icon: Moon,     gradient: 'from-slate-700 to-slate-900',    bg: 'bg-slate-100 dark:bg-slate-900/60',  text: 'text-slate-600 dark:text-slate-300',   ring: 'ring-slate-200 dark:ring-slate-700'  },
+  { id: 'm', name: 'Morning',   range: '8:15 AM – 11:15 AM', icon: Sun,      gradient: 'from-amber-400 to-orange-400',   bg: 'bg-amber-50 dark:bg-amber-950/30',   text: 'text-amber-600 dark:text-amber-400',   ring: 'ring-amber-200 dark:ring-amber-800'  },
+  { id: 'n', name: 'Noon',      range: '11:45 AM – 2:45 PM', icon: CloudSun, gradient: 'from-sky-400 to-blue-500',       bg: 'bg-sky-50 dark:bg-sky-950/30',       text: 'text-sky-600 dark:text-sky-400',       ring: 'ring-sky-200 dark:ring-sky-800'      },
+  { id: 'a', name: 'Afternoon', range: '3:15 PM – 6:15 PM',  icon: SunDim,   gradient: 'from-indigo-500 to-violet-500',  bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800'},
+  { id: 'e', name: 'Evening',   range: '6:30 PM – 9:30 PM',  icon: Moon,     gradient: 'from-slate-700 to-slate-900',    bg: 'bg-slate-100 dark:bg-slate-900/60',  text: 'text-slate-600 dark:text-slate-300',   ring: 'ring-slate-200 dark:ring-slate-700'  },
 ];
 
 // Colour cards by subject prefix

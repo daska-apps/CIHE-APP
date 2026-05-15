@@ -14,7 +14,7 @@ export default function DigitalID() {
     <div className="max-w-md mx-auto space-y-8 pb-12 pt-4">
       <header className="text-center space-y-2">
         <h1 className="text-3xl font-display font-black text-slate-800 tracking-tight">Digital Identity</h1>
-        <p className="text-slate-500 font-medium">Verify your enrollment at CIHE Campus.</p>
+        <p className="text-slate-500 font-medium">Verify your enrolment at CIHE Campus.</p>
       </header>
 
       {/* ID Card */}

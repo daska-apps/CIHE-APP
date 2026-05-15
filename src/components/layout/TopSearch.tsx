@@ -28,7 +28,7 @@ const CAMPUS_SERVICES = [
   { id: 'wellbeing', title: 'Student Wellbeing', description: 'Counseling and mental health resources.', path: '/support' },
   { id: 'library', title: 'CIHE Library', description: 'Access academic journals, books, and study spaces.', path: 'https://cihe.edu.au/library' },
   { id: 'careers', title: 'Career Advice', description: 'Resume help, internship placements, and workshops.', path: '/support' },
-  { id: 'registrar', title: 'Registrar Office', description: 'Enrollment, transcripts, and formal documentation.', path: '/forms' },
+  { id: 'registrar', title: 'Registrar Office', description: 'Enrolment, transcripts, and formal documentation.', path: '/forms' },
   { id: 'security', title: 'Campus Security', description: 'Emergency contact and safety protocols.', path: '/support' },
   { id: 'finance-office', title: 'Finance Department', description: 'Fee inquiries and payment plans.', path: '/finance' },
 ];
