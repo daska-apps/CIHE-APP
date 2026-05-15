@@ -38,19 +38,31 @@ interface ShellProps {
   children: React.ReactNode;
 }
 
-const NavItem = ({ to, icon: Icon, label, isActive }: { to: string; icon: any; label: string; isActive: boolean }) => {
+const NavItem = ({ to, icon: Icon, label, isActive, badge }: { to: string; icon: any; label: string; isActive: boolean; badge?: number }) => {
   return (
     <Link
       to={to}
       className={cn(
         "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-bold text-sm group",
-        isActive 
-          ? "bg-brand-indigo dark:bg-indigo-600 text-white shadow-lg shadow-brand-indigo/20 scale-[1.02]" 
+        isActive
+          ? "bg-brand-indigo dark:bg-indigo-600 text-white shadow-lg shadow-brand-indigo/20 scale-[1.02]"
           : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-brand-indigo dark:hover:text-indigo-400"
       )}
     >
-      <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-brand-indigo dark:group-hover:text-indigo-400")} />
-      {label}
+      <div className="relative flex-shrink-0">
+        <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-brand-indigo dark:group-hover:text-indigo-400")} />
+        {badge != null && badge > 0 && !isActive && (
+          <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 leading-none">
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
+      </div>
+      <span className="flex-1">{label}</span>
+      {badge != null && badge > 0 && !isActive && (
+        <span className="text-[9px] font-black text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded-lg">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 };
@@ -64,6 +76,9 @@ export default function Shell({ children }: ShellProps) {
   const { darkMode, setDarkMode } = useAuthStore();
   const [pushBannerVisible, setPushBannerVisible] = React.useState(false);
   const [pushStatus, setPushStatus] = React.useState<'idle'|'subscribing'|'done'>('idle');
+  // Badge counts — fetched once on mount; refresh when user changes
+  const [announcementBadge, setAnnouncementBadge] = React.useState(0);
+  const [attendanceBadge, setAttendanceBadge] = React.useState(0);
 
   // Show push prompt once per session if not yet granted
   React.useEffect(() => {
@@ -71,6 +86,29 @@ export default function Shell({ children }: ShellProps) {
     const already = localStorage.getItem('cihe-push-dismissed');
     if (!already && getCurrentPermission() === 'default') {
       setTimeout(() => setPushBannerVisible(true), 3000);
+    }
+  }, [user]);
+
+  // Load badge counts
+  React.useEffect(() => {
+    if (!user) return;
+    fetch('/api/announcements')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        // Count pinned/urgent as "unread" proxy
+        const urgent = data.filter(a => a.type === 'urgent' || a.pinned).length;
+        setAnnouncementBadge(urgent);
+      })
+      .catch(() => {});
+    // Attendance: flag if student has any absent records
+    if (user.role === 'student') {
+      fetch('/api/attendance')
+        .then(r => r.json())
+        .then((data: any[]) => {
+          const flagged = data.filter(a => a.studentId === user.id && a.status === 'absent').length;
+          setAttendanceBadge(flagged);
+        })
+        .catch(() => {});
     }
   }, [user]);
 
@@ -119,12 +157,14 @@ export default function Shell({ children }: ShellProps) {
               <NavItem to="/courses" icon={BookOpen} label="Unit Guides" isActive={location.pathname === "/courses"} />
               <NavItem to="/timetable" icon={Calendar} label="Timetable" isActive={location.pathname === "/timetable"} />
               <NavItem to="/results" icon={GraduationCap} label="Academic Record" isActive={location.pathname === "/results"} />
-              <NavItem to="/finance" icon={CreditCard} label="Finance" isActive={location.pathname === "/finance"} />
-              <NavItem to="/attendance" icon={UserCheck} label="Attendance" isActive={location.pathname === "/attendance"} />
+              {user?.role === 'student' && (
+                <NavItem to="/finance" icon={CreditCard} label="Finance" isActive={location.pathname === "/finance"} />
+              )}
+              <NavItem to="/attendance" icon={UserCheck} label="Attendance" isActive={location.pathname === "/attendance"} badge={attendanceBadge} />
               {['lecturer', 'staff', 'admin', 'global_admin'].includes(user?.role || '') && (
                 <NavItem to="/roll-call" icon={Users} label="Roll Call" isActive={location.pathname === "/roll-call"} />
               )}
-              <NavItem to="/announcements" icon={Megaphone} label="Announcements" isActive={location.pathname === "/announcements"} />
+              <NavItem to="/announcements" icon={Megaphone} label="Announcements" isActive={location.pathname === "/announcements"} badge={announcementBadge} />
               <NavItem to="/digital-id" icon={Shield} label="Digital ID" isActive={location.pathname === "/digital-id"} />
               <NavItem to="/support" icon={LifeBuoy} label="Support Hub" isActive={location.pathname === "/support"} />
               <NavItem to="/settings" icon={Settings} label="Settings" isActive={location.pathname === "/settings"} />
@@ -297,12 +337,14 @@ export default function Shell({ children }: ShellProps) {
                 <NavItem to="/timetable" icon={Calendar} label="Timetable" isActive={location.pathname === "/timetable"} />
                 <NavItem to="/results" icon={GraduationCap} label="Academic Record" isActive={location.pathname === "/results"} />
                 <NavItem to="/forms" icon={FileText} label="Forms" isActive={location.pathname === "/forms"} />
-                <NavItem to="/finance" icon={CreditCard} label="Finance" isActive={location.pathname === "/finance"} />
-                <NavItem to="/attendance" icon={UserCheck} label="Attendance" isActive={location.pathname === "/attendance"} />
+                {user?.role === 'student' && (
+                  <NavItem to="/finance" icon={CreditCard} label="Finance" isActive={location.pathname === "/finance"} />
+                )}
+                <NavItem to="/attendance" icon={UserCheck} label="Attendance" isActive={location.pathname === "/attendance"} badge={attendanceBadge} />
                 {['lecturer', 'staff', 'admin', 'global_admin'].includes(user?.role || '') && (
                   <NavItem to="/roll-call" icon={Users} label="Roll Call" isActive={location.pathname === "/roll-call"} />
                 )}
-                <NavItem to="/announcements" icon={Megaphone} label="Announcements" isActive={location.pathname === "/announcements"} />
+                <NavItem to="/announcements" icon={Megaphone} label="Announcements" isActive={location.pathname === "/announcements"} badge={announcementBadge} />
                 <NavItem to="/digital-id" icon={Shield} label="Digital ID" isActive={location.pathname === "/digital-id"} />
                 <NavItem to="/support" icon={LifeBuoy} label="Support Hub" isActive={location.pathname === "/support"} />
                 <NavItem to="/profile" icon={Settings} label="Governance" isActive={location.pathname === "/profile"} />

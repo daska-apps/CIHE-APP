@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CreditCard, Receipt, AlertCircle, CheckCircle, Download, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CreditCard, Receipt, AlertCircle, CheckCircle, Download, ExternalLink, ShieldCheck, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const INVOICES = [
@@ -14,9 +14,14 @@ export default function Finance() {
     <div className="space-y-12 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-brand-indigo font-black text-[10px] uppercase tracking-widest">
-            <CreditCard className="w-3 h-3" />
-            Treasury
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-brand-indigo font-black text-[10px] uppercase tracking-widest">
+              <CreditCard className="w-3 h-3" />
+              Treasury
+            </div>
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-brand-indigo dark:text-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest">
+              <Lock className="w-2.5 h-2.5" /> Students Only
+            </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-black text-slate-800 dark:text-white tracking-tight">Finances & Fees</h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium max-w-md">Manage tuition, HECS/FEE-HELP, and SA-HELP fees under Australian student loan regulations.</p>

@@ -59,6 +59,13 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <Shell>{children}</Shell>;
 }
 
+function StudentRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'student') return <Navigate to="/" replace />;
+  return <Shell>{children}</Shell>;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -103,13 +110,13 @@ export default function App() {
             } 
           />
 
-          <Route 
-            path="/finance" 
+          <Route
+            path="/finance"
             element={
-              <ProtectedRoute>
+              <StudentRoute>
                 <Finance />
-              </ProtectedRoute>
-            } 
+              </StudentRoute>
+            }
           />
 
           <Route 

@@ -9,10 +9,10 @@ import VivaEngage from '../components/home/VivaEngage';
 import CourseSnapshot from '../components/home/CourseSnapshot';
 import SurveySection from '../components/home/SurveySection';
 import SyncCenter from '../components/home/SyncCenter';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Bell, Clock, BookOpen, Mail, MessageSquare, ArrowUpRight, Globe, TrendingUp, Calendar, ChevronRight, ClipboardList, HelpCircle, Search } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { Bell, Clock, BookOpen, Mail, MessageSquare, ArrowUpRight, Globe, TrendingUp, Calendar, ChevronRight, ClipboardList, HelpCircle, Search, AlertTriangle, CheckCircle2, CreditCard, UserCheck, Zap, X } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const TYPE_DOT: Record<string, string> = {
   urgent: 'bg-rose-500',
@@ -49,13 +49,24 @@ export default function Dashboard() {
   const { user, timetableVersion } = useAuthStore();
   const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [dismissedActions, setDismissedActions] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('cihe-dismissed-actions') || '[]'); } catch { return []; }
+  });
 
   useEffect(() => {
+    setAnnouncementsLoading(true);
     fetch('/api/announcements')
       .then(r => r.json())
-      .then(data => setAnnouncements(data.slice(0, 4)))
-      .catch(() => {});
+      .then(data => { setAnnouncements(data.slice(0, 4)); setAnnouncementsLoading(false); })
+      .catch(() => setAnnouncementsLoading(false));
   }, []);
+
+  const dismissAction = (id: string) => {
+    const next = [...dismissedActions, id];
+    setDismissedActions(next);
+    localStorage.setItem('cihe-dismissed-actions', JSON.stringify(next));
+  };
 
   if (!user) return null;
 
@@ -78,6 +89,21 @@ export default function Dashboard() {
 
   const tiles = TILES[user.role] || [];
   const roleDisplay = user.role.replace('_', ' ').split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+
+  // Priority action items — role-aware
+  const allActionItems = React.useMemo(() => {
+    const items: { id: string; icon: any; label: string; meta: string; color: string; route: string; severity: 'urgent' | 'warning' | 'info' }[] = [];
+    if (user.role === 'student') {
+      items.push({ id: 'attendance-flag', icon: UserCheck, label: '2 Absences Flagged', meta: 'Risk of unit exclusion — take action now', color: 'rose', route: '/attendance', severity: 'urgent' });
+      items.push({ id: 'invoice-due', icon: CreditCard, label: 'Invoice Outstanding', meta: '$320.00 due • Student Services Fee', color: 'amber', route: '/finance', severity: 'warning' });
+      items.push({ id: 'grade-posted', icon: CheckCircle2, label: 'New Grade Posted', meta: 'BIT102 — Software Design Patterns: HD (86)', color: 'emerald', route: '/results', severity: 'info' });
+    }
+    if (['lecturer', 'staff', 'admin', 'global_admin'].includes(user.role)) {
+      items.push({ id: 'roll-pending', icon: UserCheck, label: 'Roll Call Pending', meta: 'ICT401 — 09:00 session awaits sign-off', color: 'amber', route: '/roll-call', severity: 'warning' });
+      items.push({ id: 'new-enrolment', icon: CheckCircle2, label: '3 New Enrolments', meta: 'Added to ICT401 this trimester', color: 'indigo', route: '/roll-call', severity: 'info' });
+    }
+    return items.filter(a => !dismissedActions.includes(a.id));
+  }, [user.role, dismissedActions]);
 
   // Strategic slice for Bento Grid
   const heroTiles = tiles.filter(t => ['moodle', 'outlook', 'teams', 'moodle_admin', 'attendance'].includes(t.id));
@@ -115,6 +141,55 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* ── Action Required Strip ── */}
+      <AnimatePresence>
+        {allActionItems.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-wrap gap-3"
+          >
+            {allActionItems.map((item) => {
+              const colorMap: Record<string, string> = {
+                rose:    'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-300',
+                amber:   'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-300',
+                emerald: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300',
+                indigo:  'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300',
+              };
+              const iconColorMap: Record<string, string> = {
+                rose: 'text-rose-500', amber: 'text-amber-500', emerald: 'text-emerald-500', indigo: 'text-indigo-500',
+              };
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={item.id}
+                  layout
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold group cursor-pointer transition-all hover:shadow-md", colorMap[item.color] || colorMap.indigo)}
+                  onClick={() => navigate(item.route)}
+                >
+                  <Icon className={cn("w-4 h-4 flex-shrink-0", iconColorMap[item.color])} />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black leading-none mb-0.5">{item.label}</p>
+                    <p className="text-[10px] opacity-70 font-bold truncate max-w-[220px]">{item.meta}</p>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity ml-1 flex-shrink-0" />
+                  <button
+                    onClick={e => { e.stopPropagation(); dismissAction(item.id); }}
+                    className="ml-1 opacity-30 hover:opacity-70 transition-opacity flex-shrink-0"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Announcements Banner (full width, top priority) ── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -137,7 +212,21 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {announcements.length === 0 ? (
+          {announcementsLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white/5 rounded-2xl p-5 animate-pulse">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                    <div className="h-2 w-12 bg-white/20 rounded-full" />
+                  </div>
+                  <div className="h-3 bg-white/20 rounded-full mb-2 w-4/5" />
+                  <div className="h-3 bg-white/10 rounded-full w-3/5" />
+                  <div className="h-2 bg-white/10 rounded-full mt-3 w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : announcements.length === 0 ? (
             <p className="text-white/30 text-xs font-bold">No announcements yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -216,23 +305,23 @@ export default function Dashboard() {
 
           {/* Analytics + Today split row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Academic Momentum chart */}
+            {/* Academic Momentum chart + attendance stat */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-8 shadow-sm flex flex-col"
+              className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-8 shadow-sm flex flex-col gap-4"
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Academic Momentum</p>
-                  <h4 className="font-black text-slate-800 dark:text-white text-xl">Daily Engagement</h4>
+                  <h4 className="font-black text-slate-800 dark:text-white text-xl">Weekly Trend</h4>
                 </div>
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl">
                   <TrendingUp className="w-5 h-5" />
                 </div>
               </div>
-              <div className="flex-1 min-h-[120px]">
+              <div className="flex-1 min-h-[100px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={PERFORMANCE_DATA}>
                     <defs>
@@ -244,6 +333,27 @@ export default function Dashboard() {
                     <Area type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
                   </AreaChart>
                 </ResponsiveContainer>
+              </div>
+              {/* Attendance at-a-glance mini-stat */}
+              <div
+                className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors group"
+                onClick={() => navigate('/attendance')}
+              >
+                <div className="flex items-center gap-3">
+                  <UserCheck className="w-4 h-4 text-slate-400 group-hover:text-brand-indigo dark:group-hover:text-indigo-400 transition-colors" />
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance Rate</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-white leading-none mt-0.5">87%</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex gap-1 mb-1">
+                    {[1,1,1,1,1,0,1,1].map((p, i) => (
+                      <div key={i} className={cn("w-2 h-2 rounded-sm", p ? 'bg-emerald-400' : 'bg-rose-400')} />
+                    ))}
+                  </div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Last 8 sessions</p>
+                </div>
               </div>
             </motion.div>
 
@@ -290,6 +400,49 @@ export default function Dashboard() {
         {/* Sidebar */}
         <div className="lg:col-span-4 space-y-8">
             <Noticeboard />
+            {/* ── Smart To-Do ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-7 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-brand-indigo/10 dark:bg-indigo-500/10 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-brand-indigo dark:text-indigo-400" />
+                  </div>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Up Next</h3>
+                </div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">This Week</span>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { label: 'Network Security — Lab 3 due', due: 'Tomorrow', color: 'bg-rose-500', route: '/courses' },
+                  { label: 'Software Design — Quiz 2', due: 'Wed 14 May', color: 'bg-amber-400', route: '/timetable' },
+                  { label: 'Systems Analysis — Reading Ch.5', due: 'Fri 16 May', color: 'bg-indigo-400', route: '/courses' },
+                  { label: 'Professional Comm — Draft due', due: 'Mon 19 May', color: 'bg-emerald-400', route: '/courses' },
+                ].map((task, i) => (
+                  <button
+                    key={i}
+                    onClick={() => navigate(task.route)}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group text-left"
+                  >
+                    <div className={cn("w-2 h-2 rounded-full flex-shrink-0", task.color)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-brand-indigo dark:group-hover:text-indigo-400 transition-colors">{task.label}</p>
+                    </div>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">{task.due}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => navigate('/courses')}
+                className="mt-4 w-full py-3 text-[10px] font-black text-brand-indigo dark:text-indigo-400 uppercase tracking-widest border border-dashed border-brand-indigo/20 dark:border-indigo-500/20 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-500/5 transition-colors"
+              >
+                View All Deadlines
+              </button>
+            </motion.div>
             <SyncCenter />
         </div>
       </div>
