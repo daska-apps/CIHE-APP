@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Shield, BookOpen, Sun, CloudSun, SunDim, Moon, LayoutGrid, Table2, Download, CalendarPlus } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Shield, BookOpen, Sun, CloudSun, SunDim, Moon, LayoutGrid, Table2, Download, CalendarPlus, Zap } from 'lucide-react';
 import { downloadIcal } from '../lib/calendarExport';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/useAuthStore';
@@ -15,6 +15,53 @@ const DAYS_MAP: Record<string, string> = {
 };
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+/** Returns an object mapping day name → date string DD/MM/YY for the week at `weekOffset` from now */
+function getWeekDates(weekOffset = 0): Record<string, string> {
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  const mondayDiff = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayDiff + weekOffset * 7);
+  const result: Record<string, string> = {};
+  DAY_NAMES.forEach((name, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    result[name] = `${dd}/${mm}/${yy}`;
+  });
+  return result;
+}
+
+/** Format a Date as "D MMM" e.g. "12 May" */
+function fmtShort(d: Date): string {
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+}
+
+/** Returns the time-of-day slot for a given slot id, in minutes from midnight */
+const SLOT_START_MINS: Record<string, number> = {
+  m: 8 * 60 + 15,
+  n: 11 * 60 + 45,
+  a: 15 * 60 + 15,
+  e: 18 * 60 + 30,
+};
+
+function timeUntilNextClass(sessions: ClassSession[], dayCode: string): string | null {
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const todaySessions = sessions
+    .filter(s => s.day === dayCode)
+    .map(s => SLOT_START_MINS[s.slot])
+    .filter(m => m != null && m > nowMins)
+    .sort((a, b) => a - b);
+  if (todaySessions.length === 0) return null;
+  const diff = todaySessions[0] - nowMins;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 type CampusId = 'NSW' | 'ACT' | 'WA';
 
@@ -76,10 +123,26 @@ export default function Timetable() {
   const defaultDay = todayIndex === 0 || todayIndex === 6 ? 'Monday' : DAY_NAMES[todayIndex - 1];
 
   const [activeDay, setActiveDay] = React.useState(defaultDay);
+  const [weekOffset, setWeekOffset] = React.useState(0);
   const [viewMode, setViewMode] = React.useState<'personal' | 'master'>(user?.role === 'student' ? 'personal' : 'master');
   const [displayMode, setDisplayMode] = React.useState<'cards' | 'grid'>('cards');
   const [selectedCampus, setSelectedCampus] = React.useState<CampusId>('NSW');
   const [selectedVenue, setSelectedVenue] = React.useState<string>('NSW_ALL');
+
+  const weekDates = React.useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const isCurrentWeek = weekOffset === 0;
+
+  // Week label e.g. "12 May – 16 May 2026"
+  const weekLabel = React.useMemo(() => {
+    const today = new Date();
+    const dow = today.getDay();
+    const mondayDiff = dow === 0 ? -6 : 1 - dow;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayDiff + weekOffset * 7);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    return `${fmtShort(monday)} – ${fmtShort(friday)} ${friday.getFullYear()}`;
+  }, [weekOffset]);
 
   const currentTimetable = timetableVersion === 'A' ? TIMETABLE_A : TIMETABLE_B;
 
@@ -125,6 +188,11 @@ export default function Timetable() {
           <h1 className="text-4xl md:text-5xl font-display font-black text-slate-800 dark:text-white tracking-tighter">
             {viewMode === 'master' ? 'Full Schedule' : 'Your Schedule'}
           </h1>
+          <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <Calendar className="w-3 h-3" />
+            {weekLabel}
+            {isCurrentWeek && <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-brand-indigo dark:text-indigo-400 rounded-full text-[9px]">Current Week</span>}
+          </p>
           <div className="flex flex-wrap items-center gap-4 mt-4">
              {isStaff && (
                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
@@ -197,9 +265,14 @@ export default function Timetable() {
            </div>
 
            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <button className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"><ChevronLeft className="w-5 h-5 text-slate-400" /></button>
-            <span className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 whitespace-nowrap">Current Week</span>
-            <button className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"><ChevronRight className="w-5 h-5 text-slate-400" /></button>
+            <button onClick={() => setWeekOffset(w => w - 1)} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"><ChevronLeft className="w-5 h-5 text-slate-400" /></button>
+            <button
+              onClick={() => setWeekOffset(0)}
+              className={cn("px-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors", isCurrentWeek ? "text-brand-indigo dark:text-indigo-400" : "text-slate-800 dark:text-slate-200 hover:text-brand-indigo")}
+            >
+              {isCurrentWeek ? 'This Week' : weekLabel}
+            </button>
+            <button onClick={() => setWeekOffset(w => w + 1)} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"><ChevronRight className="w-5 h-5 text-slate-400" /></button>
           </div>
 
           {/* Export to calendar */}
@@ -230,21 +303,28 @@ export default function Timetable() {
 
       {/* Day Selector */}
       <div className="flex overflow-x-auto no-scrollbar gap-3 pb-2 pt-2">
-        {DAY_NAMES.map((day, i) => {
-          const isToday = day === defaultDay;
+        {DAY_NAMES.map((day) => {
+          const isToday = day === defaultDay && isCurrentWeek;
           const isActive = day === activeDay;
+          const dateStr = weekDates[day] || '';
           return (
             <button
               key={day}
               onClick={() => setActiveDay(day)}
               className={cn(
-                "relative flex flex-col items-center gap-1 px-8 py-4 rounded-[1.5rem] transition-all whitespace-nowrap border-2 shadow-sm min-w-[100px]",
+                "relative flex flex-col items-center gap-1.5 px-6 py-4 rounded-[1.5rem] transition-all whitespace-nowrap border-2 shadow-sm min-w-[110px]",
                 isActive
                   ? "bg-brand-indigo border-brand-indigo text-white shadow-xl shadow-indigo-100 dark:shadow-indigo-900/30"
-                  : "bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-800 hover:border-brand-indigo/30 dark:hover:border-indigo-500/30"
+                  : isToday
+                    ? "bg-indigo-50 dark:bg-indigo-950/40 border-brand-indigo/40 dark:border-indigo-500/30 text-brand-indigo dark:text-indigo-400"
+                    : "bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-800 hover:border-brand-indigo/30 dark:hover:border-indigo-500/30"
               )}
             >
               <span className="text-[10px] font-black uppercase tracking-[0.2em]">{day.slice(0, 3)}</span>
+              <span className={cn(
+                "text-[11px] font-black tabular-nums",
+                isActive ? "text-white/90" : "text-slate-500 dark:text-slate-400"
+              )}>{dateStr}</span>
               {isToday && (
                 <span className={cn(
                   "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full",
@@ -256,10 +336,40 @@ export default function Timetable() {
         })}
       </div>
 
+      {/* ── Next Class Countdown (today only) ── */}
+      {(() => {
+        const dayCode = DAYS_MAP[activeDay];
+        const isToday = activeDay === defaultDay && isCurrentWeek;
+        if (!isToday) return null;
+        const countdown = timeUntilNextClass(sessions, dayCode);
+        if (!countdown) return null;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 px-6 py-3.5 bg-brand-indigo/5 dark:bg-indigo-500/10 border border-brand-indigo/15 dark:border-indigo-500/20 rounded-2xl"
+          >
+            <div className="w-2 h-2 rounded-full bg-brand-indigo dark:bg-indigo-400 animate-pulse" />
+            <Zap className="w-4 h-4 text-brand-indigo dark:text-indigo-400" />
+            <p className="text-xs font-black text-brand-indigo dark:text-indigo-400 uppercase tracking-widest">
+              Next class in <span className="text-slate-800 dark:text-white">{countdown}</span>
+            </p>
+          </motion.div>
+        );
+      })()}
+
       {/* ── Card View ── */}
-      {displayMode === 'cards' && <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {displayMode === 'cards' && (() => {
+        const dayCode = DAYS_MAP[activeDay];
+        const isToday = activeDay === defaultDay && isCurrentWeek;
+        return (
+        <div className={cn(
+          "grid grid-cols-1 lg:grid-cols-4 gap-6 rounded-[2.5rem] p-6 transition-colors",
+          isToday
+            ? "bg-indigo-50/60 dark:bg-indigo-950/20 ring-1 ring-indigo-100 dark:ring-indigo-900/40"
+            : "bg-transparent"
+        )}>
         {SLOTS.map((slot) => {
-          const dayCode = DAYS_MAP[activeDay];
           const slotSessions = sessions.filter(s => s.day === dayCode && s.slot === slot.id);
 
           return (
@@ -347,7 +457,9 @@ export default function Timetable() {
             </div>
           );
         })}
-      </div>}
+      </div>
+      );
+      })()}
 
       {/* ── Room Grid View ── */}
       {displayMode === 'grid' && (() => {
