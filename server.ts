@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { UNIT_TITLES, TIMETABLE_A, TIMETABLE_B } from "./src/lib/timetableData";
+import webpush from "web-push";
 
 dotenv.config();
 
@@ -11,6 +12,33 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '50kb' }));
+
+// VAPID configuration for Web Push
+const VAPID_PUBLIC  = 'BFm6A-0SPnVq_qLvTbL-xpjemArUu7I90F0Pa0iIYzFI_2-26YHrlhq8slfI0w0N0o9htRWaP7WlNTsCvoFNepg';
+const VAPID_PRIVATE = 'olUbPYFrV0wPm3mnpToOop_d4UtAcHNPvqO7FJceldg';
+webpush.setVapidDetails('mailto:portal@cihe.edu.au', VAPID_PUBLIC, VAPID_PRIVATE);
+
+// In-memory push subscription store: userId -> PushSubscription
+const pushSubscriptions = new Map<string, any>();
+
+// Helper: send a push to a specific user
+async function sendPushToUser(userId: string, payload: object) {
+  const sub = pushSubscriptions.get(userId);
+  if (!sub) return;
+  try {
+    await webpush.sendNotification(sub, JSON.stringify(payload));
+  } catch (err: any) {
+    if (err.statusCode === 410) pushSubscriptions.delete(userId); // expired
+  }
+}
+
+// Helper: broadcast to all subscribed users
+async function broadcastPush(payload: object) {
+  const sends = [...pushSubscriptions.entries()].map(([, sub]) =>
+    webpush.sendNotification(sub, JSON.stringify(payload)).catch(() => {})
+  );
+  await Promise.allSettled(sends);
+}
 
 // In-memory store (in production this would be a DB)
 let attendanceRecords: any[] = [
@@ -451,6 +479,73 @@ async function startServer() {
     };
     attendanceRecords.push(newRecord);
     res.status(201).json(newRecord);
+  });
+
+  // Batch attendance — accepts up to 50 records in one call
+  app.post("/api/attendance/batch", (req, res) => {
+    const { records } = req.body || {};
+    if (!Array.isArray(records) || records.length === 0) {
+      res.status(400).json({ error: "records array is required" }); return;
+    }
+    const saved: any[] = [];
+    for (const r of records.slice(0, 50)) {
+      const { studentId, name, status, room, unitCode, sessionId } = r;
+      if (!studentId || typeof studentId !== 'string') continue;
+      if (!['present', 'absent', 'late'].includes(status)) continue;
+      const rec = {
+        id: crypto.randomUUID(),
+        studentId: studentId.trim(),
+        name: typeof name === 'string' ? name.trim() : studentId.trim(),
+        status,
+        room: typeof room === 'string' ? room.trim().slice(0, 50) : null,
+        unitCode: typeof unitCode === 'string' ? unitCode.trim().slice(0, 20) : null,
+        sessionId: typeof sessionId === 'string' ? sessionId.trim().slice(0, 100) : null,
+        timestamp: new Date().toISOString(),
+        batched: true,
+      };
+      attendanceRecords.push(rec);
+      saved.push(rec);
+    }
+    res.status(201).json({ saved: saved.length, records: saved });
+  });
+
+  // ── Push Notification Routes ──
+  app.post('/api/push/subscribe', (req, res) => {
+    const { userId, subscription } = req.body || {};
+    if (!userId || !subscription) { res.status(400).json({ error: 'userId and subscription required' }); return; }
+    pushSubscriptions.set(String(userId), subscription);
+    res.json({ ok: true, subscribed: pushSubscriptions.size });
+  });
+
+  app.post('/api/push/unsubscribe', (req, res) => {
+    const { userId } = req.body || {};
+    if (userId) pushSubscriptions.delete(String(userId));
+    res.json({ ok: true });
+  });
+
+  // Send a push to a specific user (internal use / admin)
+  app.post('/api/push/send', async (req, res) => {
+    const { userId, title, body, url, tag } = req.body || {};
+    if (!title) { res.status(400).json({ error: 'title required' }); return; }
+    const payload = { title, body, url: url || '/', tag: tag || 'cihe' };
+    if (userId) {
+      await sendPushToUser(String(userId), payload);
+    } else {
+      await broadcastPush(payload);
+    }
+    res.json({ ok: true });
+  });
+
+  // Announce a new session to enrolled students (called when lecturer starts session)
+  app.post('/api/push/session-started', async (req, res) => {
+    const { sessionId, unitCode, room, title } = req.body || {};
+    await broadcastPush({
+      title: `Class Starting — ${unitCode || 'Session'}`,
+      body: `${title || 'Your class'} is starting in Room ${room}. Scan the QR code to mark attendance.`,
+      url: '/attendance',
+      tag: `session-${sessionId}`,
+    });
+    res.json({ ok: true, notified: pushSubscriptions.size });
   });
 
   // --- Frontend: Vite (dev) or static (prod) — registered AFTER API routes ---

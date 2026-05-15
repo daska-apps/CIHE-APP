@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -30,8 +30,15 @@ export default function Attendance() {
   const [scannedResult, setScannedResult] = useState<{ session: string; room: string; unit: string } | null>(null);
   const [activeSession, setActiveSession] = useState<{ id: string; room: string; title: string; unitCode: string } | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
-  const [timetableVersion] = useState<'A' | 'B'>('A'); // Default to current version
+  const [timetableVersion] = useState<'A' | 'B'>('A');
   const [timeLeft, setTimeLeft] = useState(60);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [rotating, setRotating] = useState(false);
+  // Batch queue for attendance records
+  const batchQueueRef = useRef<any[]>([]);
+  const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const SESSION_TTL = 60; // seconds before QR auto-rotates
 
   const urlSession = searchParams.get('session');
   const urlRoom = searchParams.get('room');
@@ -44,23 +51,38 @@ export default function Attendance() {
 
   const unitInfo = effectiveUnit ? UNIT_TITLES[effectiveUnit] : null;
 
-  // Countdown timer for QR validity
+  // Rotate session ID — generates a fresh SESS- code, invalidating the old QR
+  const rotateSession = useCallback(() => {
+    setRotating(true);
+    setSessionExpired(false);
+    setActiveSession(prev => prev ? {
+      ...prev,
+      id: `SESS-${crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()}`,
+    } : null);
+    setTimeLeft(SESSION_TTL);
+    setTimeout(() => setRotating(false), 800);
+  }, []);
+
+  // Countdown + auto-rotate when timer hits 0
   useEffect(() => {
     if (!showQr || !activeSession) return;
-    
-    setTimeLeft(60);
+    setTimeLeft(SESSION_TTL);
+    setSessionExpired(false);
+
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
-          // Regenerate session ID or token if needed, here we just reset for demo
-          return 60;
+          setSessionExpired(true);
+          // Auto-rotate after a 3-second "expired" window so lecturer sees it
+          setTimeout(() => rotateSession(), 3000);
+          return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [showQr, activeSession]);
+  }, [showQr, activeSession?.id]); // re-runs on each rotation (new id)
 
   // Find classes taught by this lecturer today
   const dayCode = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
@@ -94,33 +116,52 @@ export default function Attendance() {
     refetchIntervalInBackground: true,
   });
 
-  const markAttendanceMutation = useMutation({
-    mutationFn: async (status: 'present' | 'absent' | 'late') => {
-      // Simulate Anti-Fraud IP/GPS Check
-      const fraudCheck = new Promise((resolve) => setTimeout(resolve, 1200));
-      await fraudCheck;
-
-      const res = await fetch('/api/attendance', {
+  // ── Batch flush: sends queued records to /api/attendance/batch ──
+  const flushBatch = useCallback(async () => {
+    if (batchQueueRef.current.length === 0) return;
+    const payload = [...batchQueueRef.current];
+    batchQueueRef.current = [];
+    try {
+      await fetch('/api/attendance/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId: user?.id,
-          name: user?.name,
-          status,
-          room: effectiveRoom || 'L4-H01',
-          sessionId: effectiveSession || 'manual',
-          unitCode: effectiveUnit,
-          metadata: {
-            ipVerified: true,
-            geofence: 'CIHE-SYDNEY-CAMPUS',
-            timestamp: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify({ records: payload }),
       });
-      return res.json();
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+    } catch {
+      // Re-queue on failure
+      batchQueueRef.current = [...payload, ...batchQueueRef.current];
+    }
+  }, [queryClient]);
+
+  // ── Queue a record then schedule a flush (debounced 500 ms, max 10) ──
+  const enqueueAttendance = useCallback((record: any) => {
+    batchQueueRef.current.push(record);
+    if (batchTimerRef.current) clearTimeout(batchTimerRef.current);
+    if (batchQueueRef.current.length >= 10) {
+      flushBatch();
+    } else {
+      batchTimerRef.current = setTimeout(flushBatch, 500);
+    }
+  }, [flushBatch]);
+
+  const markAttendanceMutation = useMutation({
+    mutationFn: async (status: 'present' | 'absent' | 'late') => {
+      // Anti-Fraud check
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      const record = {
+        studentId: user?.id,
+        name: user?.name,
+        status,
+        room: effectiveRoom || 'L4-H01',
+        sessionId: effectiveSession || 'manual',
+        unitCode: effectiveUnit,
+        metadata: { ipVerified: true, geofence: 'CIHE-SYDNEY-CAMPUS', timestamp: new Date().toISOString() }
+      };
+      enqueueAttendance(record);
+      return record;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
       setShowQr(false);
       setScannedResult(null);
       setSearchParams({});
@@ -491,27 +532,66 @@ export default function Attendance() {
                     <p className="text-white/40 text-xs font-bold uppercase tracking-widest">Room {activeSession?.room}</p>
                   </div>
 
-                  <div className="relative group">
-                    <div className="bg-white p-5 rounded-3xl shadow-2xl">
+                  {/* QR Code with expiry overlay */}
+                  <div className="relative">
+                    <div className={cn(
+                      "bg-white p-5 rounded-3xl shadow-2xl transition-all duration-300",
+                      (sessionExpired || rotating) && "opacity-30 scale-95 blur-sm"
+                    )}>
                       <QRCodeSVG
-                        value={`${sessionToken}&expires=${Date.now() + (timeLeft * 1000)}&v=1`}
+                        value={sessionToken}
                         size={200}
                         level="H"
                         includeMargin={false}
                       />
                     </div>
-                    <div className="absolute -top-3 -right-3 flex items-center gap-1.5 px-3 py-1.5 bg-brand-indigo text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">
-                      <Clock className="w-3 h-3" />
-                      {timeLeft}s
-                    </div>
+
+                    {/* Countdown ring */}
+                    {!sessionExpired && !rotating && (
+                      <div className={cn(
+                        "absolute -top-3 -right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg transition-colors",
+                        timeLeft <= 10
+                          ? "bg-rose-500 text-white animate-pulse"
+                          : timeLeft <= 20
+                          ? "bg-amber-500 text-white"
+                          : "bg-brand-indigo text-white"
+                      )}>
+                        <Clock className="w-3 h-3" />
+                        {timeLeft}s
+                      </div>
+                    )}
+
+                    {/* Expired overlay */}
+                    {sessionExpired && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-slate-900/80 backdrop-blur-sm">
+                        <span className="text-rose-400 text-[10px] font-black uppercase tracking-widest mb-1">Expired</span>
+                        <span className="text-white/40 text-[9px] font-bold">Rotating QR…</span>
+                      </div>
+                    )}
+
+                    {/* Rotating overlay */}
+                    {rotating && !sessionExpired && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-slate-900/70 backdrop-blur-sm">
+                        <RefreshCw className="w-8 h-8 text-white animate-spin mb-1" />
+                        <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">New QR Ready</span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Manual rotate button */}
+                  <button
+                    onClick={rotateSession}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Rotate Now
+                  </button>
 
                   <div className="text-center w-full">
                     <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">Session Code</p>
                     <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
                       <p className="text-white font-mono font-black text-sm tracking-widest">{activeSession?.id}</p>
                     </div>
-                    <p className="text-[9px] font-bold text-white/20 mt-3">Students can also enter this code manually</p>
+                    <p className="text-[9px] font-bold text-white/20 mt-3">QR auto-rotates every {SESSION_TTL}s · Students can enter code manually</p>
                   </div>
                 </div>
 
@@ -520,7 +600,7 @@ export default function Attendance() {
                   <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest">Live Attendees</h3>
-                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">Auto-refreshing every 3 seconds</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">Auto-refreshing every 2 seconds</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">

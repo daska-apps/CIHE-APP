@@ -31,8 +31,8 @@ import RoleSwitcher from '../home/RoleSwitcher';
 import Logo from '../ui/Logo';
 import TopSearch from './TopSearch';
 import NotificationsPanel from './NotificationsPanel';
-
 import SupportAssistant from '../assistant/SupportAssistant';
+import { isPushSupported, subscribeToPush, getCurrentPermission } from '../../lib/pushNotifications';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -62,6 +62,31 @@ export default function Shell({ children }: ShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(() => document.documentElement.classList.contains('dark'));
+  const [pushBannerVisible, setPushBannerVisible] = React.useState(false);
+  const [pushStatus, setPushStatus] = React.useState<'idle'|'subscribing'|'done'>('idle');
+
+  // Show push prompt once per session if not yet granted
+  React.useEffect(() => {
+    if (!user || !isPushSupported()) return;
+    const already = localStorage.getItem('cihe-push-dismissed');
+    if (!already && getCurrentPermission() === 'default') {
+      setTimeout(() => setPushBannerVisible(true), 3000);
+    }
+  }, [user]);
+
+  const handleEnablePush = async () => {
+    setPushStatus('subscribing');
+    const ok = await subscribeToPush(user?.id || 'anonymous');
+    setPushStatus('done');
+    setPushBannerVisible(false);
+    localStorage.setItem('cihe-push-dismissed', '1');
+    if (!ok) console.warn('[CIHE] Push subscription failed or denied');
+  };
+
+  const dismissPushBanner = () => {
+    setPushBannerVisible(false);
+    localStorage.setItem('cihe-push-dismissed', '1');
+  };
 
   const toggleDarkMode = () => {
     const newMode = !darkMode;
@@ -202,6 +227,42 @@ export default function Shell({ children }: ShellProps) {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
+              {/* Push notification opt-in banner */}
+              <AnimatePresence>
+                {pushBannerVisible && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    className="mb-6 flex items-center justify-between gap-4 bg-brand-indigo text-white px-6 py-4 rounded-[2rem] shadow-xl"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Bell className="w-5 h-5 text-indigo-200 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-black">Enable push notifications</p>
+                        <p className="text-[11px] text-indigo-200 font-medium">Get alerts for new classes, announcements and attendance reminders.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={handleEnablePush}
+                        disabled={pushStatus === 'subscribing'}
+                        className="px-4 py-2 bg-white text-brand-indigo text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 transition-all disabled:opacity-60"
+                      >
+                        {pushStatus === 'subscribing' ? 'Enabling…' : 'Enable'}
+                      </button>
+                      <button
+                        onClick={dismissPushBanner}
+                        className="p-2 text-indigo-300 hover:text-white transition-colors"
+                        aria-label="Dismiss"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {children}
             </motion.div>
           </AnimatePresence>
