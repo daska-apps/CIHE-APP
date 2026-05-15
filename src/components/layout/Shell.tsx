@@ -61,7 +61,7 @@ export default function Shell({ children }: ShellProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(() => document.documentElement.classList.contains('dark'));
+  const { darkMode, setDarkMode } = useAuthStore();
   const [pushBannerVisible, setPushBannerVisible] = React.useState(false);
   const [pushStatus, setPushStatus] = React.useState<'idle'|'subscribing'|'done'>('idle');
 
@@ -88,15 +88,7 @@ export default function Shell({ children }: ShellProps) {
     localStorage.setItem('cihe-push-dismissed', '1');
   };
 
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const handleLogout = () => {
     setUser(null);

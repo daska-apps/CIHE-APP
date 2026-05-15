@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Shield, BookOpen, Sun, CloudSun, SunDim, Moon, LayoutGrid, Table2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Shield, BookOpen, Sun, CloudSun, SunDim, Moon, LayoutGrid, Table2, Download, CalendarPlus } from 'lucide-react';
+import { downloadIcal } from '../lib/calendarExport';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/useAuthStore';
 import { TIMETABLE_A, TIMETABLE_B, UNIT_TITLES, Day, SlotId, getMasterSchedule, type ClassSession } from '../lib/timetableData';
@@ -200,6 +201,16 @@ export default function Timetable() {
             <span className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 whitespace-nowrap">Current Week</span>
             <button className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"><ChevronRight className="w-5 h-5 text-slate-400" /></button>
           </div>
+
+          {/* Export to calendar */}
+          <button
+            onClick={() => downloadIcal(sessions)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:border-brand-indigo dark:hover:border-indigo-500 hover:text-brand-indigo dark:hover:text-indigo-400 transition-all shadow-sm"
+            title="Download as .ics file — works with Apple Calendar, Google Calendar, Outlook"
+          >
+            <CalendarPlus className="w-4 h-4" />
+            Sync Calendar
+          </button>
 
           {/* Display mode toggle */}
           <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">

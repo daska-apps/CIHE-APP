@@ -1,22 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { 
-  User, 
-  Settings as SettingsIcon, 
-  Bell, 
-  Shield, 
-  Moon, 
-  Sun, 
-  Smartphone, 
-  Globe, 
-  Mail, 
+import {
+  User,
+  Settings as SettingsIcon,
+  Bell,
+  Shield,
+  Moon,
+  Sun,
+  Smartphone,
+  Globe,
+  Mail,
   Lock,
   ChevronRight,
   Camera,
-  Check
+  Check,
+  Link2,
+  Unlink,
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/useAuthStore';
+import { isPushSupported, subscribeToPush, unsubscribeFromPush, getCurrentPermission } from '../lib/pushNotifications';
 
 interface SectionProps {
   title: string;
@@ -76,19 +81,50 @@ const SettingItem = ({ icon: Icon, label, value, onClick, toggle, isToggled }: S
 );
 
 export default function Settings() {
-  const { user } = useAuthStore();
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('cihe-dark-mode');
-    return saved ? saved === 'true' : document.documentElement.classList.contains('dark');
-  });
-  const [notifications, setNotifications] = useState(true);
+  const { user, darkMode, setDarkMode } = useAuthStore();
   const [mfa, setMfa] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [msConnected, setMsConnected] = useState(() => localStorage.getItem('cihe-ms-connected') === '1');
+  const [moodleConnected, setMoodleConnected] = useState(() => localStorage.getItem('cihe-moodle-connected') === '1');
+  const [connecting, setConnecting] = useState<'ms'|'moodle'|null>(null);
 
-  const toggleDarkMode = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('cihe-dark-mode', String(next));
+  const connectMicrosoft = async () => {
+    setConnecting('ms');
+    await new Promise(r => setTimeout(r, 1800)); // simulated OAuth
+    setMsConnected(true);
+    localStorage.setItem('cihe-ms-connected', '1');
+    setConnecting(null);
+  };
+
+  const connectMoodle = async () => {
+    setConnecting('moodle');
+    await new Promise(r => setTimeout(r, 1500));
+    setMoodleConnected(true);
+    localStorage.setItem('cihe-moodle-connected', '1');
+    setConnecting(null);
+  };
+
+  const disconnect = (service: 'ms' | 'moodle') => {
+    if (service === 'ms') { setMsConnected(false); localStorage.removeItem('cihe-ms-connected'); }
+    else { setMoodleConnected(false); localStorage.removeItem('cihe-moodle-connected'); }
+  };
+
+  useEffect(() => {
+    setPushEnabled(isPushSupported() && getCurrentPermission() === 'granted');
+  }, []);
+
+  const togglePush = async () => {
+    if (!isPushSupported()) return;
+    setPushLoading(true);
+    if (pushEnabled) {
+      await unsubscribeFromPush(user?.id || 'anon');
+      setPushEnabled(false);
+    } else {
+      const ok = await subscribeToPush(user?.id || 'anon');
+      setPushEnabled(ok);
+    }
+    setPushLoading(false);
   };
 
   return (
@@ -155,13 +191,13 @@ export default function Settings() {
             title="Appearance" 
             description="Personalise your dashboard experience"
           >
-            <SettingItem 
-              icon={darkMode ? Moon : Sun} 
-              label="Dark Mode" 
+            <SettingItem
+              icon={darkMode ? Moon : Sun}
+              label="Dark Mode"
               value={darkMode ? "High contrast visual style" : "Classic light theme"}
               toggle
               isToggled={darkMode}
-              onClick={toggleDarkMode}
+              onClick={() => setDarkMode(!darkMode)}
             />
             <SettingItem 
               icon={Smartphone} 
@@ -194,14 +230,83 @@ export default function Settings() {
               isToggled={mfa}
               onClick={() => setMfa(!mfa)}
             />
-            <SettingItem 
-              icon={Bell} 
-              label="Push Notifications" 
-              value="Get alerts for classes and news"
+            <SettingItem
+              icon={Bell}
+              label="Push Notifications"
+              value={pushEnabled ? "Enabled — you'll receive alerts" : pushLoading ? "Updating…" : isPushSupported() ? "Tap to enable alerts for classes and news" : "Not supported on this browser"}
               toggle
-              isToggled={notifications}
-              onClick={() => setNotifications(!notifications)}
+              isToggled={pushEnabled}
+              onClick={togglePush}
             />
+          </Section>
+
+          {/* Connected Accounts */}
+          <Section title="Connected Accounts" description="Link your Microsoft and Moodle accounts to sync academic records and grades">
+            {/* Microsoft Entra */}
+            <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none"><path d="M1 1h10v10H1z" fill="#F35325"/><path d="M12 1h10v10H12z" fill="#81BC06"/><path d="M1 12h10v10H1z" fill="#05A6F0"/><path d="M12 12h10v10H12z" fill="#FFBA08"/></svg>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Microsoft 365</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                    {msConnected ? `Connected as ${user?.email}` : 'Sign in with your CIHE Microsoft account'}
+                  </p>
+                </div>
+              </div>
+              {msConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                    <Check className="w-3 h-3" /> Connected
+                  </span>
+                  <button onClick={() => disconnect('ms')} className="p-1.5 text-slate-300 hover:text-rose-400 transition-colors"><Unlink className="w-3.5 h-3.5" /></button>
+                </div>
+              ) : (
+                <button
+                  onClick={connectMicrosoft}
+                  disabled={connecting === 'ms'}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#0078d4] text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all disabled:opacity-60"
+                >
+                  {connecting === 'ms' ? <><Loader2 className="w-3 h-3 animate-spin" /> Connecting…</> : <><Link2 className="w-3 h-3" /> Connect</>}
+                </button>
+              )}
+            </div>
+
+            {/* Moodle */}
+            <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-[#f47b20]" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Moodle LMS</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                    {moodleConnected ? 'Grades and academic records syncing' : 'Connect to sync grades and academic records'}
+                  </p>
+                </div>
+              </div>
+              {moodleConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                    <Check className="w-3 h-3" /> Syncing
+                  </span>
+                  <button onClick={() => disconnect('moodle')} className="p-1.5 text-slate-300 hover:text-rose-400 transition-colors"><Unlink className="w-3.5 h-3.5" /></button>
+                </div>
+              ) : (
+                <button
+                  onClick={connectMoodle}
+                  disabled={connecting === 'moodle' || !msConnected}
+                  title={!msConnected ? 'Connect Microsoft first' : ''}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#f47b20] text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all disabled:opacity-40"
+                >
+                  {connecting === 'moodle' ? <><Loader2 className="w-3 h-3 animate-spin" /> Connecting…</> : <><Link2 className="w-3 h-3" /> Connect</>}
+                </button>
+              )}
+            </div>
+            {!msConnected && (
+              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-600 px-4">Connect Microsoft first to enable Moodle sync.</p>
+            )}
           </Section>
 
           <div className="flex items-center justify-between p-8">

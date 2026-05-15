@@ -12,17 +12,30 @@ interface AuthState {
   } | null;
   timetableVersion: 'A' | 'B';
   isAuthenticated: boolean;
+  darkMode: boolean;
   login: (credential: string) => void;
   logout: () => void;
   setUser: (user: AuthState['user']) => void;
   setRole: (role: UserRole) => void;
   setTimetableVersion: (version: 'A' | 'B') => void;
+  setDarkMode: (dark: boolean) => void;
 }
+
+// Read initial dark mode from localStorage / DOM
+const initDark = (() => {
+  const saved = localStorage.getItem('cihe-dark-mode');
+  return saved ? saved === 'true' : document.documentElement.classList.contains('dark');
+})();
+
+// Immediately apply so there's no flash on load
+if (initDark) document.documentElement.classList.add('dark');
+else document.documentElement.classList.remove('dark');
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   timetableVersion: 'A',
+  darkMode: initDark,
   login: (credential) => {
     // Detect student ID format (e.g. CIHE21351)
     const isStudentId = ALL_STUDENTS.includes(credential.toUpperCase());
@@ -69,4 +82,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     user: state.user ? { ...state.user, role } : null
   })),
   setTimetableVersion: (version) => set({ timetableVersion: version }),
+  setDarkMode: (dark) => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('cihe-dark-mode', String(dark));
+    set({ darkMode: dark });
+  },
 }));
