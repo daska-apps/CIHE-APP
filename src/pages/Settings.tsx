@@ -17,7 +17,11 @@ import {
   Link2,
   Unlink,
   BookOpen,
-  Loader2
+  Loader2,
+  GraduationCap,
+  Megaphone,
+  UserCheck,
+  FileText
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/useAuthStore';
@@ -83,6 +87,18 @@ const SettingItem = ({ icon: Icon, label, value, onClick, toggle, isToggled }: S
 export default function Settings() {
   const { user, darkMode, setDarkMode } = useAuthStore();
   const [mfa, setMfa] = useState(false);
+
+  // Notification preferences (persisted to localStorage)
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cihe-notif-prefs') || '{}');
+    } catch { return {}; }
+  });
+  const toggleNotif = (key: string) => {
+    const next = { ...notifPrefs, [key]: !notifPrefs[key] };
+    setNotifPrefs(next);
+    localStorage.setItem('cihe-notif-prefs', JSON.stringify(next));
+  };
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [msConnected, setMsConnected] = useState(() => localStorage.getItem('cihe-ms-connected') === '1');
@@ -238,6 +254,26 @@ export default function Settings() {
               isToggled={pushEnabled}
               onClick={togglePush}
             />
+          </Section>
+
+          {/* Notification Preferences */}
+          <Section title="Notification Preferences" description="Choose which alerts you receive and how">
+            {[
+              { key: 'notif-grades',        icon: GraduationCap, label: 'Grade Updates',         value: 'New results and feedback posted' },
+              { key: 'notif-announcements', icon: Megaphone,     label: 'Announcements',          value: 'Campus news and urgent notices' },
+              { key: 'notif-attendance',    icon: UserCheck,     label: 'Attendance Reminders',   value: 'Before class and absence alerts' },
+              { key: 'notif-assignments',   icon: FileText,      label: 'Assignment Deadlines',   value: '24h and 1h before due dates' },
+            ].map(item => (
+              <SettingItem
+                key={item.key}
+                icon={item.icon}
+                label={item.label}
+                value={item.value}
+                toggle
+                isToggled={!!notifPrefs[item.key]}
+                onClick={() => toggleNotif(item.key)}
+              />
+            ))}
           </Section>
 
           {/* Connected Accounts */}

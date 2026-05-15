@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { UserCheck, Clock, Search, Check, X, QrCode, Shield, Users, ArrowUpRight, Loader2, PlayCircle, StopCircle, ScanLine, BookOpen, CalendarCheck, RefreshCw } from 'lucide-react';
+import { UserCheck, Clock, Search, Check, X, QrCode, Shield, Users, ArrowUpRight, Loader2, PlayCircle, StopCircle, ScanLine, BookOpen, CalendarCheck, RefreshCw, Send, AlertTriangle, Plus, CheckCircle2, XCircle, FileText } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { cn } from '../lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
@@ -37,6 +37,57 @@ export default function Attendance() {
   // Batch queue for attendance records
   const batchQueueRef = useRef<any[]>([]);
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Absence Request State ──
+  interface AbsenceRequest {
+    id: string;
+    studentId: string;
+    studentName: string;
+    unitCode: string;
+    date: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    submittedAt: string;
+  }
+  const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>(() => {
+    try { return JSON.parse(localStorage.getItem('cihe-absence-requests') || '[]'); } catch { return []; }
+  });
+  const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [absenceForm, setAbsenceForm] = useState({ date: '', unitCode: '', reason: '' });
+  const [absenceSubmitting, setAbsenceSubmitting] = useState(false);
+  const [absenceSubmitted, setAbsenceSubmitted] = useState(false);
+
+  const submitAbsenceRequest = async () => {
+    if (!absenceForm.date || !absenceForm.unitCode || !absenceForm.reason.trim()) return;
+    setAbsenceSubmitting(true);
+    await new Promise(r => setTimeout(r, 1200));
+    const req: AbsenceRequest = {
+      id: `ABS-${Date.now().toString(36).toUpperCase()}`,
+      studentId: user?.id || 'unknown',
+      studentName: user?.name || 'Unknown',
+      unitCode: absenceForm.unitCode,
+      date: absenceForm.date,
+      reason: absenceForm.reason,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+    };
+    const updated = [req, ...absenceRequests];
+    setAbsenceRequests(updated);
+    localStorage.setItem('cihe-absence-requests', JSON.stringify(updated));
+    setAbsenceSubmitting(false);
+    setAbsenceSubmitted(true);
+    setTimeout(() => {
+      setAbsenceSubmitted(false);
+      setShowAbsenceModal(false);
+      setAbsenceForm({ date: '', unitCode: '', reason: '' });
+    }, 1500);
+  };
+
+  const handleAbsenceAction = (id: string, action: 'approved' | 'rejected') => {
+    const updated = absenceRequests.map(r => r.id === id ? { ...r, status: action } : r);
+    setAbsenceRequests(updated);
+    localStorage.setItem('cihe-absence-requests', JSON.stringify(updated));
+  };
 
   const SESSION_TTL = 60; // seconds before QR auto-rotates
 
@@ -275,13 +326,22 @@ export default function Attendance() {
             </>
           )}
           {isStudent && (
-            <button 
-              onClick={() => setShowQr(true)}
-              className="px-6 py-3 bg-[#003B95] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-100/50"
-            >
-              <QrCode className="w-4 h-4" />
-              Check-in Now
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => setShowAbsenceModal(true)}
+                className="px-5 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Report Absence
+              </button>
+              <button
+                onClick={() => setShowQr(true)}
+                className="px-6 py-3 bg-[#003B95] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-100/50"
+              >
+                <QrCode className="w-4 h-4" />
+                Check-in Now
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -377,6 +437,82 @@ export default function Attendance() {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* ── Student: My Absence Requests ── */}
+      {isStudent && absenceRequests.filter(r => r.studentId === user?.id).length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-950/50">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Absence Requests</h3>
+              <p className="text-[10px] font-bold text-slate-400 mt-0.5">Your submitted absence notifications</p>
+            </div>
+          </div>
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            {absenceRequests.filter(r => r.studentId === user?.id).map(req => (
+              <div key={req.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                <div>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{req.unitCode} · {req.date}</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5 max-w-[260px] truncate">{req.reason}</p>
+                </div>
+                <span className={cn(
+                  "flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider",
+                  req.status === 'approved' ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" :
+                  req.status === 'rejected' ? "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400" :
+                  "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                )}>
+                  {req.status === 'approved' ? <CheckCircle2 className="w-3 h-3" /> :
+                   req.status === 'rejected' ? <XCircle className="w-3 h-3" /> :
+                   <Clock className="w-3 h-3" />}
+                  {req.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Lecturer: Pending Absence Approvals ── */}
+      {(isLecturer || isOperator) && absenceRequests.filter(r => r.status === 'pending').length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-amber-200 dark:border-amber-500/30 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-amber-100 dark:border-amber-500/20 flex items-center gap-4 bg-amber-50/50 dark:bg-amber-500/5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">Pending Absence Requests</h3>
+              <p className="text-[10px] font-bold text-slate-400 mt-0.5">{absenceRequests.filter(r => r.status === 'pending').length} awaiting your review</p>
+            </div>
+          </div>
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            {absenceRequests.filter(r => r.status === 'pending').map(req => (
+              <div key={req.id} className="flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-5">
+                <div className="flex-1">
+                  <p className="text-sm font-black text-slate-800 dark:text-white">{req.studentName}</p>
+                  <p className="text-[10px] font-bold text-brand-indigo dark:text-indigo-400 uppercase tracking-widest">{req.unitCode} · {req.date}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{req.reason}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleAbsenceAction(req.id, 'approved')}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Approve
+                  </button>
+                  <button
+                    onClick={() => handleAbsenceAction(req.id, 'rejected')}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all"
+                  >
+                    <X className="w-3.5 h-3.5" /> Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -738,6 +874,109 @@ export default function Attendance() {
               </motion.div>
             )}
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Absence Request Modal ── */}
+      <AnimatePresence>
+        {showAbsenceModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => { if (!absenceSubmitting) setShowAbsenceModal(false); }}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-8 pb-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">Report Absence</h2>
+                    <p className="text-[10px] text-slate-400 font-bold">Notifies your lecturer and registry</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowAbsenceModal(false)} className="p-2 text-slate-300 hover:text-slate-600 dark:hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {absenceSubmitted ? (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="py-14 flex flex-col items-center gap-4"
+                >
+                  <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/20 rounded-full flex items-center justify-center">
+                    <Check className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <p className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Submitted</p>
+                  <p className="text-xs text-slate-400 text-center">Your lecturer has been notified.</p>
+                </motion.div>
+              ) : (
+                <div className="p-8 space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date of Absence</label>
+                    <input
+                      type="date"
+                      value={absenceForm.date}
+                      onChange={e => setAbsenceForm(f => ({ ...f, date: e.target.value }))}
+                      className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-indigo dark:focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Code</label>
+                    <input
+                      type="text"
+                      value={absenceForm.unitCode}
+                      onChange={e => setAbsenceForm(f => ({ ...f, unitCode: e.target.value.toUpperCase() }))}
+                      placeholder="e.g. ICT301"
+                      className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-brand-indigo dark:focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</label>
+                    <textarea
+                      value={absenceForm.reason}
+                      onChange={e => setAbsenceForm(f => ({ ...f, reason: e.target.value }))}
+                      placeholder="Brief description of your absence (medical, family, etc.)"
+                      rows={3}
+                      className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-brand-indigo dark:focus:border-indigo-500 resize-none transition-colors"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-bold">
+                    Supporting documentation (medical certificate, etc.) can be submitted via{' '}
+                    <span className="text-brand-indigo dark:text-indigo-400 underline cursor-pointer">Forms & Requests</span>.
+                  </p>
+                  <button
+                    onClick={submitAbsenceRequest}
+                    disabled={!absenceForm.date || !absenceForm.unitCode || !absenceForm.reason.trim() || absenceSubmitting}
+                    className={cn(
+                      "w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                      absenceForm.date && absenceForm.unitCode && absenceForm.reason.trim()
+                        ? "bg-brand-indigo text-white hover:bg-indigo-700 shadow-lg shadow-brand-indigo/20"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                    )}
+                  >
+                    {absenceSubmitting ? (
+                      <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Submitting…</>
+                    ) : (
+                      <><Send className="w-4 h-4" /> Submit Absence Report</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

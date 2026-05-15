@@ -250,7 +250,7 @@ export default function Shell({ children }: ShellProps) {
           </div>
         </header>
 
-        <main className="p-6 md:p-12 max-w-7xl mx-auto overflow-hidden">
+        <main className="p-6 md:p-12 pb-28 lg:pb-12 max-w-7xl mx-auto overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -302,6 +302,48 @@ export default function Shell({ children }: ShellProps) {
       </div>
 
       <SupportAssistant />
+
+      {/* ── Mobile Bottom Nav Bar ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 flex items-stretch pb-safe">
+        {[
+          { to: '/',             icon: LayoutDashboard, label: 'Home',       badge: 0 },
+          { to: '/timetable',    icon: Calendar,        label: 'Timetable',  badge: 0 },
+          { to: '/attendance',   icon: UserCheck,       label: 'Attendance', badge: attendanceBadge },
+          { to: '/announcements',icon: Megaphone,       label: 'Alerts',     badge: announcementBadge },
+          { to: '/settings',     icon: Settings,        label: 'Settings',   badge: 0 },
+        ].map(item => {
+          const isActive = location.pathname === item.to;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center py-3 gap-1 relative transition-colors",
+                isActive ? "text-brand-indigo dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
+              )}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-indicator"
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-brand-indigo dark:bg-indigo-400 rounded-full"
+                />
+              )}
+              <div className="relative">
+                <item.icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110")} />
+                {item.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 bg-rose-500 text-white text-[7px] font-black rounded-full flex items-center justify-center px-0.5">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
+              </div>
+              <span className={cn(
+                "text-[9px] font-black uppercase tracking-wider transition-all",
+                isActive ? "text-brand-indigo dark:text-indigo-400" : "text-slate-400"
+              )}>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>

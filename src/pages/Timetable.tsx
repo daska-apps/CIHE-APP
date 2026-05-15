@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Shield, BookOpen, Sun, CloudSun, SunDim, Moon, LayoutGrid, Table2, Download, CalendarPlus, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Shield, BookOpen, Sun, CloudSun, SunDim, Moon, LayoutGrid, Table2, Download, CalendarPlus, Zap, StickyNote, AlertTriangle, X, Save, Pencil, Check } from 'lucide-react';
 import { downloadIcal } from '../lib/calendarExport';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/useAuthStore';
@@ -129,6 +129,35 @@ export default function Timetable() {
   const [selectedCampus, setSelectedCampus] = React.useState<CampusId>('NSW');
   const [selectedVenue, setSelectedVenue] = React.useState<string>('NSW_ALL');
 
+  // ── Session Notes ──
+  const noteKey = (s: ClassSession) => `cihe-note-${s.unitCode}-${s.day}-${s.slot}`;
+  const getNote = (s: ClassSession) => localStorage.getItem(noteKey(s)) || '';
+  const [noteModal, setNoteModal] = React.useState<{ session: ClassSession; text: string } | null>(null);
+  const [noteSaved, setNoteSaved] = React.useState(false);
+  // Track which note keys have content so cards re-render
+  const [noteKeys, setNoteKeys] = React.useState<Set<string>>(() => {
+    const keys = new Set<string>();
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith('cihe-note-') && localStorage.getItem(k)) keys.add(k);
+    }
+    return keys;
+  });
+
+  const saveNote = () => {
+    if (!noteModal) return;
+    const k = noteKey(noteModal.session);
+    if (noteModal.text.trim()) {
+      localStorage.setItem(k, noteModal.text);
+      setNoteKeys(prev => new Set([...prev, k]));
+    } else {
+      localStorage.removeItem(k);
+      setNoteKeys(prev => { const n = new Set(prev); n.delete(k); return n; });
+    }
+    setNoteSaved(true);
+    setTimeout(() => { setNoteSaved(false); setNoteModal(null); }, 600);
+  };
+
   const weekDates = React.useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const isCurrentWeek = weekOffset === 0;
 
@@ -176,6 +205,19 @@ export default function Timetable() {
   }, [viewMode, user?.id, user?.role, currentTimetable, timetableVersion, selectedCampus, selectedVenue, currentVenues]);
 
   const isStaff = ['staff', 'lecturer', 'admin', 'global_admin'].includes(user?.role || '');
+
+  // ── Clash Detection ──
+  // A clash = two sessions in the same room at the same day+slot
+  const clashKeys = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const s of sessions) {
+      const k = `${s.day}-${s.slot}-${s.room}`;
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    return new Set(Object.keys(counts).filter(k => counts[k] > 1));
+  }, [sessions]);
+
+  const hasClashes = clashKeys.size > 0;
 
   return (
     <div className="space-y-8 pb-12 font-sans">
@@ -301,6 +343,20 @@ export default function Timetable() {
         </div>
       </header>
 
+      {/* ── Clash Warning ── */}
+      {hasClashes && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-5 py-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl"
+        >
+          <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+          <p className="text-xs font-black text-rose-700 dark:text-rose-300 uppercase tracking-wider">
+            Room clash detected — {clashKeys.size} conflict{clashKeys.size > 1 ? 's' : ''} in current view. Affected cards are highlighted.
+          </p>
+        </motion.div>
+      )}
+
       {/* Day Selector */}
       <div className="flex overflow-x-auto no-scrollbar gap-3 pb-2 pt-2">
         {DAY_NAMES.map((day) => {
@@ -406,6 +462,9 @@ export default function Timetable() {
                     item.room.startsWith('NS') ? 'North Syd' :
                     'Miller St';
 
+                  const clashKey = `${item.day}-${item.slot}-${item.room}`;
+                  const isClash = clashKeys.has(clashKey);
+                  const hasNote = noteKeys.has(noteKey(item));
                   return (
                     <motion.div
                       key={i}
@@ -413,11 +472,19 @@ export default function Timetable() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
                       whileHover={{ y: -3, scale: 1.015 }}
+                      onClick={() => setNoteModal({ session: item, text: getNote(item) })}
                       className={cn(
                         "p-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 border-l-[6px] shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-lg",
-                        colors.border
+                        isClash ? "border-rose-400 dark:border-rose-500 ring-2 ring-rose-200 dark:ring-rose-500/30" : colors.border
                       )}
                     >
+                      {/* Clash badge */}
+                      {isClash && (
+                        <div className="absolute top-3 right-3 flex items-center gap-1 bg-rose-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Clash
+                        </div>
+                      )}
+
                       {/* Unit code pill + room */}
                       <div className="flex items-center justify-between mb-3">
                         <span className={cn("px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg", colors.pill)}>
@@ -440,11 +507,11 @@ export default function Timetable() {
                           <User className="w-3 h-3" />
                           <span className="truncate max-w-[90px]">{info.tutor}</span>
                         </div>
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500">{campus}</span>
+                        <div className="flex items-center gap-2">
+                          {hasNote && <StickyNote className="w-3 h-3 text-amber-400" />}
+                          <Pencil className="w-3 h-3 text-slate-200 dark:text-slate-700 group-hover:text-brand-indigo dark:group-hover:text-indigo-400 transition-colors" />
+                        </div>
                       </div>
-
-                      {/* Colour dot accent */}
-                      <div className={cn("absolute top-4 right-4 w-1.5 h-1.5 rounded-full opacity-40", colors.dot)} />
                     </motion.div>
                   );
                 }) : (
@@ -567,6 +634,77 @@ export default function Timetable() {
           </div>
         </div>
       )}
+
+      {/* ── Session Note Modal ── */}
+      <AnimatePresence>
+        {noteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setNoteModal(null)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                    <StickyNote className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Session Note</p>
+                    <p className="text-sm font-black text-slate-800 dark:text-white">
+                      {UNIT_TITLES[noteModal.session.unitCode]?.code || noteModal.session.unitCode}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setNoteModal(null)} className="p-2 text-slate-300 hover:text-slate-600 dark:hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest">
+                {noteModal.session.day} · {SLOTS.find(s => s.id === noteModal.session.slot)?.name} · Room {noteModal.session.room}
+              </p>
+              <textarea
+                autoFocus
+                value={noteModal.text}
+                onChange={e => setNoteModal(m => m ? { ...m, text: e.target.value } : null)}
+                placeholder="Add a personal reminder, e.g. 'Bring lab notebook', 'Ask about assignment extension'…"
+                rows={5}
+                className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-brand-indigo dark:focus:border-indigo-500 resize-none transition-colors"
+              />
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={saveNote}
+                  className={cn(
+                    "flex-1 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                    noteSaved
+                      ? "bg-emerald-500 text-white"
+                      : "bg-brand-indigo text-white hover:bg-indigo-700"
+                  )}
+                >
+                  {noteSaved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Note</>}
+                </button>
+                {noteModal.text && (
+                  <button
+                    onClick={() => setNoteModal(m => m ? { ...m, text: '' } : null)}
+                    className="px-4 py-3 rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Legend */}
       <div className="pt-8 flex flex-wrap items-center gap-6 border-t border-slate-100 dark:border-slate-800">
