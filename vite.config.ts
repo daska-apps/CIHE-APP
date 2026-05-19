@@ -5,8 +5,11 @@ import {defineConfig, loadEnv} from 'vite';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
+  const isMobile = process.env.BUILD_TARGET === 'mobile';
   return {
     plugins: [react(), tailwindcss()],
+    // Use relative base for Capacitor mobile builds so assets load from the WebView
+    base: isMobile ? './' : '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
